@@ -1,0 +1,17 @@
+node_modules/
+dist/
+test-results/
+playwright-report/
+coverage/
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.log
+*.crx
+*.zip
+public/models/face_landmarker.task
+public/models/*.download
+.DS_Store

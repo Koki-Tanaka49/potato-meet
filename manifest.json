@@ -1,0 +1,34 @@
+{
+  "manifest_version": 3,
+  "name": "Potato Meet",
+  "version": "0.3.1",
+  "description": "Google Meetの相手の顔を、動くポテトで楽しく隠します。",
+  "action": {
+    "default_title": "Potato Meet",
+    "default_popup": "popup/popup.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "permissions": ["storage"],
+  "content_scripts": [
+    {
+      "matches": ["https://meet.google.com/*"],
+      "js": ["mediapipe/wasm/vision_wasm_internal.js", "content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "mediapipe/wasm/*",
+        "models/face_landmarker.task",
+        "potato/*.png"
+      ],
+      "matches": ["https://meet.google.com/*"]
+    }
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+  }
+}

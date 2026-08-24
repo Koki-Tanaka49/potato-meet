@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Potato Meet 模擬会議</title>
+    <style>
+      * { box-sizing: border-box; }
+      body { margin: 0; min-height: 100vh; overflow: hidden; background: #151515; color: white; font-family: Arial, sans-serif; }
+      header { height: 72px; display: flex; align-items: center; justify-content: space-between; padding: 0 28px; }
+      header strong { font-size: 20px; }
+      header span { color: #b8b8b8; }
+      .grid { display: grid; grid-template-columns: 2fr 1fr; grid-template-rows: 1fr 1fr; gap: 12px; height: calc(100vh - 142px); padding: 0 20px; }
+      .tile { position: relative; overflow: hidden; border-radius: 18px; background: #2b2b2b; }
+      .tile:first-child { grid-row: 1 / 3; }
+      video { width: 100%; height: 100%; object-fit: cover; }
+      .name { position: absolute; z-index: 4; left: 14px; bottom: 13px; padding: 5px 9px; border-radius: 8px; background: rgb(0 0 0 / 56%); font-size: 14px; }
+      footer { height: 70px; display: grid; place-items: center; color: #bdbdbd; }
+    </style>
+  </head>
+  <body>
+    <header><strong>Potato Meet 模擬会議</strong><span>22:45　abc-defg-hij</span></header>
+    <div class="grid">
+      <section class="tile" data-participant-id="remote-aki" data-participant-name="Aki">
+        <video id="remote" autoplay muted playsinline></video><span class="name">Aki</span>
+      </section>
+      <section class="tile" data-participant-id="local" data-is-self="true" aria-label="あなたの映像">
+        <video id="local" autoplay muted playsinline></video><span class="name">あなた</span>
+      </section>
+      <section class="tile" data-participant-id="slides" data-screen-share="true" aria-label="画面共有">
+        <video id="share" autoplay muted playsinline></video><span class="name">画面共有</span>
+      </section>
+    </div>
+    <footer>マイク　　カメラ　　通話を終了</footer>
+    <script>
+      const remotePortrait = new Image();
+      remotePortrait.src = "__REMOTE_PORTRAIT_DATA_URL__";
+      function attachVideo(id, background, kind) {
+        const canvas = document.createElement("canvas");
+        canvas.width = 640;
+        canvas.height = 360;
+        const context = canvas.getContext("2d");
+        let tick = 0;
+        function draw() {
+          tick += 1;
+          context.fillStyle = background;
+          context.fillRect(0, 0, 640, 360);
+          if (kind === "face") {
+            if (remotePortrait.complete && remotePortrait.naturalWidth > 0) {
+              const sourceHeight = remotePortrait.naturalWidth * (360 / 640);
+              const sourceY = (remotePortrait.naturalHeight - sourceHeight) / 2;
+              context.drawImage(remotePortrait, 0, sourceY, remotePortrait.naturalWidth, sourceHeight, 0, 0, 640, 360);
+            }
+          } else if (kind === "slides") {
+            context.fillStyle = "white"; context.fillRect(90, 45, 460, 270);
+            context.fillStyle = "#246fdb"; context.fillRect(130, 90, 230, 22);
+            context.fillStyle = "#aac7ef"; context.fillRect(130, 140, 340, 14); context.fillRect(130, 175, 280, 14);
+          } else {
+            context.fillStyle = "#9aa0a6"; context.beginPath(); context.arc(320, 155, 70, 0, Math.PI * 2); context.fill();
+          }
+          requestAnimationFrame(draw);
+        }
+        draw();
+        const video = document.getElementById(id);
+        video.srcObject = canvas.captureStream(8);
+        video.play();
+      }
+      attachVideo("remote", "#375867", "face");
+      attachVideo("local", "#50445b", "local");
+      attachVideo("share", "#1e1e1e", "slides");
+    </script>
+  </body>
+</html>

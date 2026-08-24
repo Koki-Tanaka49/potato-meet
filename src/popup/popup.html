@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Potato Meet</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main>
+      <header class="brand">
+        <span id="selection-preview" class="brand-mark" role="img" aria-label="じゃがいも">
+          <img id="preview-body" class="preview-body" src="../potato/potato-body.png" alt="" />
+          <img id="preview-sunglasses" class="preview-sunglasses" src="../potato/sunglasses.png" alt="" hidden />
+          <img class="preview-mouth" src="../potato/mouth-open.png" alt="" />
+        </span>
+        <div>
+          <h1>Potato Meet</h1>
+          <p id="availability">Google Meet用</p>
+          <p id="selection-summary">じゃがいも</p>
+        </div>
+      </header>
+
+      <section class="toggle-row" aria-labelledby="toggle-label">
+        <div>
+          <strong id="toggle-label">ポテト表示</strong>
+          <span id="state-label">オフ</span>
+        </div>
+        <label class="switch">
+          <input id="potato-toggle" type="checkbox" role="switch" aria-labelledby="toggle-label state-label" />
+          <span class="track"><span class="thumb"></span></span>
+        </label>
+      </section>
+
+      <fieldset class="variants">
+        <legend>ポテトを選ぶ</legend>
+        <div class="variant-list">
+          <label class="variant-option">
+            <input type="radio" name="potato-variant" value="classic" checked />
+            <span class="variant-content">
+              <span class="variant-preview"><img src="../potato/potato-body.png" alt="" /></span>
+              <span>じゃがいも</span>
+            </span>
+          </label>
+          <label class="variant-option">
+            <input type="radio" name="potato-variant" value="sweet" />
+            <span class="variant-content">
+              <span class="variant-preview"><img src="../potato/potato-body-sweet.png" alt="" /></span>
+              <span>さつまいも</span>
+            </span>
+          </label>
+          <label class="variant-option">
+            <input type="radio" name="potato-variant" value="purple" />
+            <span class="variant-content">
+              <span class="variant-preview"><img src="../potato/potato-body-purple.png" alt="" /></span>
+              <span>紫いも</span>
+            </span>
+          </label>
+        </div>
+      </fieldset>
+
+      <section class="accessory-row" aria-labelledby="sunglasses-label">
+        <div class="accessory-info">
+          <span class="accessory-preview" aria-hidden="true">
+            <img src="../potato/sunglasses.png" alt="" />
+          </span>
+          <div>
+            <strong id="sunglasses-label">サングラス</strong>
+            <span id="sunglasses-state">オフ</span>
+          </div>
+        </div>
+        <label class="switch">
+          <input id="sunglasses-toggle" type="checkbox" role="switch" aria-labelledby="sunglasses-label sunglasses-state" />
+          <span class="track"><span class="thumb"></span></span>
+        </label>
+      </section>
+
+      <footer>
+        <span class="privacy-dot" aria-hidden="true"></span>
+        <p id="notice">映像は保存・送信されません</p>
+      </footer>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>

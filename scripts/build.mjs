@@ -27,15 +27,15 @@ await build({
 
 await cp(path.join(root, "manifest.json"), path.join(dist, "manifest.json"));
 await cp(path.join(root, "public"), dist, { recursive: true });
-await cp(path.join(root, "THIRD_PARTY_NOTICES.md"), path.join(dist, "THIRD_PARTY_NOTICES.md"));
-await mkdir(path.join(dist, "third_party"), { recursive: true });
+await cp(path.join(root, "docs/third-party.md"), path.join(dist, "THIRD_PARTY_NOTICES.md"));
+await mkdir(path.join(dist, "licenses"), { recursive: true });
 await cp(
-  path.join(root, "third_party/Apache-2.0.txt"),
-  path.join(dist, "third_party/Apache-2.0.txt")
+  path.join(root, "licenses/apache-2.0.txt"),
+  path.join(dist, "licenses/apache-2.0.txt")
 );
 await cp(
-  path.join(root, "third_party/MediaPipe-NOTICE.txt"),
-  path.join(dist, "third_party/MediaPipe-NOTICE.txt")
+  path.join(root, "licenses/mediapipe-notice.txt"),
+  path.join(dist, "licenses/mediapipe-notice.txt")
 );
 await mkdir(path.join(dist, "popup"), { recursive: true });
 await cp(path.join(root, "src/popup/popup.html"), path.join(dist, "popup/popup.html"));

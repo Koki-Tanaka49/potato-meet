@@ -13,6 +13,7 @@ await mkdir(dist, { recursive: true });
 await build({
   entryPoints: [
     path.join(root, "src/content.ts"),
+    path.join(root, "src/face-tracker-worker.ts"),
     path.join(root, "src/background.ts"),
     path.join(root, "src/popup/popup.ts")
   ],

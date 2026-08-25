@@ -26,6 +26,7 @@ function loadImage(path: string): Promise<HTMLImageElement> {
 export class PotatoRenderer {
   private variant: PotatoVariant;
   private sunglassesEnabled: boolean;
+  private renderCount = 0;
 
   private constructor(
     private readonly canvas: HTMLCanvasElement,
@@ -96,10 +97,18 @@ export class PotatoRenderer {
 
   draw(poses: OverlayPose[]): void {
     this.context.clearRect(0, 0, innerWidth, innerHeight);
+    let staticCount = 0;
+    let openMouthCount = 0;
+    for (const pose of poses) {
+      if (pose.isStatic) staticCount += 1;
+      if (pose.mouthOpen) openMouthCount += 1;
+    }
+    this.renderCount += 1;
     this.canvas.dataset.potatoCount = String(poses.length);
-    this.canvas.dataset.staticCount = String(poses.filter((pose) => pose.isStatic).length);
-    this.canvas.dataset.openMouthCount = String(poses.filter((pose) => pose.mouthOpen).length);
+    this.canvas.dataset.staticCount = String(staticCount);
+    this.canvas.dataset.openMouthCount = String(openMouthCount);
     this.canvas.dataset.sunglassesCount = String(this.sunglassesEnabled ? poses.length : 0);
+    this.canvas.dataset.renderCount = String(this.renderCount);
     for (const pose of poses) this.drawPotato(pose);
   }
 

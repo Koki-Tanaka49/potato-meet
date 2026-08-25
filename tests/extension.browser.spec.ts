@@ -116,7 +116,7 @@ test("模擬Meetで相手だけに表示し、ON/OFFを繰り返せる", async (
     await worker.evaluate(() => chrome.storage.local.set({ sunglassesEnabled: true }));
     await expect(overlay).toHaveAttribute("data-sunglasses-count", "1");
     expect((await getMeetState(worker)).sunglassesEnabled).toBe(true);
-    await page.screenshot({ path: "artifacts/potato-meet-browser.png", fullPage: true });
+    await page.screenshot({ path: "docs/images/potato-meet-browser.png", fullPage: true });
 
     await worker.evaluate(() => chrome.storage.local.set({ potatoVariant: "sweet" }));
     await expect(overlay).toHaveAttribute("data-potato-variant", "sweet");
@@ -188,7 +188,7 @@ test("模擬Meetで相手だけに表示し、ON/OFFを繰り返せる", async (
     await expect(popup.locator("#preview-body")).toHaveAttribute("src", /potato-body-sweet\.png$/);
     await expect(popup.locator("#preview-sunglasses")).toBeVisible();
     await expect(popup.locator("#selection-summary")).toHaveText("さつまいも + サングラス");
-    await popup.screenshot({ path: "artifacts/potato-meet-popup.png" });
+    await popup.screenshot({ path: "docs/images/potato-meet-popup.png" });
   } finally {
     await context.close();
     const expectedPrefix = `${os.tmpdir()}${path.sep}potato-meet-chrome-`;

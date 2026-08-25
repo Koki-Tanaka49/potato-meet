@@ -414,41 +414,47 @@ class PotatoMeetController {
 }
 
 const controller = new PotatoMeetController();
+let variantChangedWhileLoading = false;
+let sunglassesChangedWhileLoading = false;
+let controllerInitialized = false;
+
+// Content Scriptの起動直後にポップアップを開いても、保存済みの見た目を
+// 初期値で返さないよう、設定の読み込み完了をすべての操作より先に待つ。
+const controllerReady = chrome.storage.local
+  .get(["potatoVariant", "sunglassesEnabled"])
+  .then(({ potatoVariant, sunglassesEnabled }) => {
+    if (!variantChangedWhileLoading && isPotatoVariant(potatoVariant)) controller.setVariant(potatoVariant);
+    if (!sunglassesChangedWhileLoading && typeof sunglassesEnabled === "boolean") {
+      controller.setSunglassesEnabled(sunglassesEnabled);
+    }
+    controllerInitialized = true;
+  });
 
 chrome.runtime.onMessage.addListener(
   (message: ExtensionMessage, _sender, sendResponse: (response: ExtensionStateResponse) => void) => {
-    if (message.type === "POTATO_GET_STATE") {
-      sendResponse(controller.getState());
-      return false;
-    }
-    if (message.type === "POTATO_SET_ENABLED") {
-      controller
-        .setEnabled(message.enabled)
-        .then(sendResponse)
-        .catch(() => sendResponse(controller.getState()));
-      return true;
-    }
-    if (message.type === "POTATO_SET_VARIANT") {
-      sendResponse(controller.setVariant(message.variant));
-      return false;
-    }
-    if (message.type === "POTATO_SET_SUNGLASSES") {
-      sendResponse(controller.setSunglassesEnabled(message.enabled));
-      return false;
-    }
-    return false;
+    void controllerReady
+      .then(async () => {
+        if (message.type === "POTATO_GET_STATE") return controller.getState();
+        if (message.type === "POTATO_SET_ENABLED") return controller.setEnabled(message.enabled);
+        if (message.type === "POTATO_SET_VARIANT") return controller.setVariant(message.variant);
+        return controller.setSunglassesEnabled(message.enabled);
+      })
+      .then(sendResponse)
+      .catch(() => sendResponse(controller.getState()));
+    return true;
   }
 );
-
-void chrome.storage.local.get(["potatoVariant", "sunglassesEnabled"]).then(({ potatoVariant, sunglassesEnabled }) => {
-  if (isPotatoVariant(potatoVariant)) controller.setVariant(potatoVariant);
-  if (typeof sunglassesEnabled === "boolean") controller.setSunglassesEnabled(sunglassesEnabled);
-});
 
 chrome.storage.onChanged.addListener((changes, areaName) => {
   if (areaName !== "local") return;
   const variant = changes.potatoVariant?.newValue;
-  if (isPotatoVariant(variant)) controller.setVariant(variant);
+  if (isPotatoVariant(variant)) {
+    if (!controllerInitialized) variantChangedWhileLoading = true;
+    controller.setVariant(variant);
+  }
   const sunglassesEnabled = changes.sunglassesEnabled?.newValue;
-  if (typeof sunglassesEnabled === "boolean") controller.setSunglassesEnabled(sunglassesEnabled);
+  if (typeof sunglassesEnabled === "boolean") {
+    if (!controllerInitialized) sunglassesChangedWhileLoading = true;
+    controller.setSunglassesEnabled(sunglassesEnabled);
+  }
 });

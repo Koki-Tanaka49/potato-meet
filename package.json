@@ -4,6 +4,9 @@
   "private": true,
   "type": "module",
   "description": "Google Meetの相手の顔へポテトを重ねるChrome拡張機能",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "assets": "node scripts/prepare-assets.mjs",
     "model": "node scripts/fetch-model.mjs",

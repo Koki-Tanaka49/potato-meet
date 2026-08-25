@@ -188,6 +188,17 @@ test("模擬Meetで相手だけに表示し、ON/OFFを繰り返せる", async (
     await expect(popup.locator("#preview-body")).toHaveAttribute("src", /potato-body-sweet\.png$/);
     await expect(popup.locator("#preview-sunglasses")).toBeVisible();
     await expect(popup.locator("#selection-summary")).toHaveText("さつまいも + サングラス");
+
+    // ポップアップを開いたままMeet側の設定が変わっても、表示を同期する。
+    await worker.evaluate(() => chrome.storage.local.set({
+      potatoVariant: "purple",
+      sunglassesEnabled: false
+    }));
+    await expect(popup.locator("input[name='potato-variant'][value='purple']")).toBeChecked();
+    await expect(popup.locator("#sunglasses-toggle")).not.toBeChecked();
+    await expect(popup.locator("#preview-body")).toHaveAttribute("src", /potato-body-purple\.png$/);
+    await expect(popup.locator("#preview-sunglasses")).toBeHidden();
+    await expect(popup.locator("#selection-summary")).toHaveText("紫いも");
     await popup.screenshot({ path: "docs/images/potato-meet-popup.png" });
   } finally {
     await context.close();

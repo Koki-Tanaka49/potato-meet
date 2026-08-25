@@ -134,6 +134,21 @@ sunglassesToggle.addEventListener("change", async () => {
   if (response) render(response);
 });
 
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName !== "local") return;
+
+  const variant = changes.potatoVariant?.newValue;
+  if (isPotatoVariant(variant)) selectVariant(variant);
+
+  const sunglassesEnabled = changes.sunglassesEnabled?.newValue;
+  if (typeof sunglassesEnabled === "boolean") {
+    storedSunglassesEnabled = sunglassesEnabled;
+    sunglassesToggle.checked = sunglassesEnabled;
+    sunglassesState.textContent = sunglassesEnabled ? "オン" : "オフ";
+    updatePreview();
+  }
+});
+
 void (async () => {
   const stored = await chrome.storage.local.get(["potatoVariant", "sunglassesEnabled"]);
   if (isPotatoVariant(stored.potatoVariant)) selectVariant(stored.potatoVariant);

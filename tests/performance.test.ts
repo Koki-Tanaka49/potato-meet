@@ -20,7 +20,7 @@ describe("人数に応じた負荷調整", () => {
     const profile = performanceProfileFor(12);
     expect(profile.mode).toBe("light");
     expect(profile.detectionSize).toBeLessThan(224);
-    expect(profile.renderInterval).toBeGreaterThanOrEqual(50);
+    expect(profile.detectionDelay).toBeGreaterThan(60);
     expect(profile.maxTrackedFaces).toBe(8);
   });
 });

@@ -14,13 +14,14 @@
   "content_scripts": [
     {
       "matches": ["https://meet.google.com/*"],
-      "js": ["mediapipe/wasm/vision_wasm_internal.js", "content.js"],
+      "js": ["content.js"],
       "run_at": "document_idle"
     }
   ],
   "web_accessible_resources": [
     {
       "resources": [
+        "face-tracker-worker.js",
         "mediapipe/wasm/*",
         "models/face_landmarker.task",
         "potato/*.png"

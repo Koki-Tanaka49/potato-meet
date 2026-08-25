@@ -1,5 +1,5 @@
 import { FaceTracker } from "./face-tracker";
-import { expandAndClampFace, faceBoxToPageRect, staticPotatoRect } from "./geometry";
+import { expandAndClampFace, faceBoxToPageRect } from "./geometry";
 import { findMeetCandidates, updateCandidateLayout, type MeetVideoCandidate } from "./meet-adapter";
 import { nextMouthState, smoothMotion } from "./motion";
 import { performanceProfileFor } from "./performance";
@@ -18,14 +18,25 @@ interface ParticipantState {
   candidate: MeetVideoCandidate;
   observation: FaceObservation | null;
   motion: FaceMotion;
-  addedAt: number;
   lastSeenAt: number;
   consecutiveDetections: number;
   trackingConfirmed: boolean;
   readable: boolean;
+  lastVideoFrame: number;
 }
 
 const EMPTY_MOTION: FaceMotion = { roll: 0, yaw: 0, pitch: 0, mouthOpen: false };
+const MIN_FACE_HOLD_MS = 500;
+
+function faceHoldDuration(participantCount: number): number {
+  const profile = performanceProfileFor(participantCount);
+  return Math.max(MIN_FACE_HOLD_MS, profile.detectionDelay * profile.maxTrackedFaces * 2);
+}
+
+function videoFrameToken(video: HTMLVideoElement): number {
+  const totalFrames = video.getVideoPlaybackQuality().totalVideoFrames;
+  return totalFrames > 0 ? totalFrames : video.currentTime;
+}
 
 class PotatoMeetController {
   private enabled = false;
@@ -45,7 +56,6 @@ class PotatoMeetController {
   private animationFrame: number | null = null;
   private detectionCursor = 0;
   private lastDetectionTimestamp = 0;
-  private lastRenderTimestamp = 0;
   private generation = 0;
   private trackerLoadQueue: Promise<void> = Promise.resolve();
 
@@ -65,12 +75,14 @@ class PotatoMeetController {
   setVariant(variant: PotatoVariant): ExtensionStateResponse {
     this.variant = variant;
     this.renderer?.setVariant(variant);
+    this.requestRender();
     return this.getState();
   }
 
   setSunglassesEnabled(enabled: boolean): ExtensionStateResponse {
     this.sunglassesEnabled = enabled;
     this.renderer?.setSunglassesEnabled(enabled);
+    this.requestRender();
     return this.getState();
   }
 
@@ -101,11 +113,16 @@ class PotatoMeetController {
     this.mutationObserver = new MutationObserver(() => this.scheduleScan());
     this.mutationObserver.observe(document.documentElement, { childList: true, subtree: true });
     this.resizeObserver = new ResizeObserver(() => this.updateLayouts());
-    for (const state of this.participants.values()) this.resizeObserver.observe(state.candidate.tile);
-    this.scanTimer = window.setInterval(() => this.scan(), 750);
-    this.layoutTimer = window.setInterval(() => this.updateLayouts(), 120);
+    for (const state of this.participants.values()) this.observeCandidate(state.candidate);
+    this.scanTimer = window.setInterval(() => {
+      if (!document.hidden) this.scan();
+    }, 750);
+    this.layoutTimer = window.setInterval(() => {
+      if (!document.hidden) this.updateLayouts();
+    }, 120);
     window.addEventListener("resize", this.handleWindowResize, { passive: true });
-    this.renderLoop();
+    document.addEventListener("visibilitychange", this.handleVisibilityChange);
+    this.requestRender();
     this.trackerLoadQueue = this.trackerLoadQueue
       .catch(() => undefined)
       .then(() => this.loadTracker(generation));
@@ -126,7 +143,7 @@ class PotatoMeetController {
       if (!this.enabled || generation !== this.generation) return;
       this.detectorReady = false;
       this.detectorError = error instanceof Error ? error.message : String(error);
-      // 顔検出を初期化できない場合も、静止ポテトで安全に動作を続ける。
+      // カメラ映像だと確認できないため、顔検出を使えない場合は描画しない。
     }
   }
 
@@ -149,8 +166,8 @@ class PotatoMeetController {
     this.detectionTimer = null;
     this.scanDebounce = null;
     this.animationFrame = null;
-    this.lastRenderTimestamp = 0;
     window.removeEventListener("resize", this.handleWindowResize);
+    document.removeEventListener("visibilitychange", this.handleVisibilityChange);
     this.tracker?.close();
     this.tracker = null;
     this.renderer?.destroy();
@@ -161,6 +178,21 @@ class PotatoMeetController {
   private readonly handleWindowResize = (): void => {
     this.renderer?.resize();
     this.updateLayouts();
+    this.requestRender();
+  };
+
+  private readonly handleVisibilityChange = (): void => {
+    if (document.hidden) {
+      if (this.detectionTimer !== null) clearTimeout(this.detectionTimer);
+      if (this.animationFrame !== null) cancelAnimationFrame(this.animationFrame);
+      this.detectionTimer = null;
+      this.animationFrame = null;
+      return;
+    }
+    this.scan();
+    this.updateLayouts();
+    this.requestRender();
+    this.scheduleDetection(0);
   };
 
   private scheduleScan(): void {
@@ -173,48 +205,77 @@ class PotatoMeetController {
 
   private scan(): void {
     if (!this.enabled) return;
-    const now = performance.now();
     const candidates = findMeetCandidates();
     const activeVideos = new Set(candidates.map((candidate) => candidate.video));
+    let changed = false;
 
     for (const [video, state] of this.participants) {
       if (!activeVideos.has(video) || !state.candidate.tile.isConnected || !video.isConnected) {
-        this.resizeObserver?.unobserve(state.candidate.tile);
+        this.unobserveCandidate(state.candidate);
         this.participants.delete(video);
+        changed = true;
       }
     }
 
     for (const candidate of candidates) {
       const existing = this.participants.get(candidate.video);
       if (existing) {
+        const previous = existing.candidate;
+        const candidateChanged =
+          previous.tile !== candidate.tile ||
+          previous.tileRect.x !== candidate.tileRect.x ||
+          previous.tileRect.y !== candidate.tileRect.y ||
+          previous.tileRect.width !== candidate.tileRect.width ||
+          previous.tileRect.height !== candidate.tileRect.height ||
+          previous.videoRect.x !== candidate.videoRect.x ||
+          previous.videoRect.y !== candidate.videoRect.y ||
+          previous.videoRect.width !== candidate.videoRect.width ||
+          previous.videoRect.height !== candidate.videoRect.height ||
+          previous.objectFit !== candidate.objectFit ||
+          previous.mirrored !== candidate.mirrored;
+        if (previous.tile !== candidate.tile) {
+          this.unobserveCandidate(previous);
+          this.observeCandidate(candidate);
+        }
         existing.candidate = candidate;
+        changed ||= candidateChanged;
       } else {
         this.participants.set(candidate.video, {
           candidate,
           observation: null,
           motion: { ...EMPTY_MOTION },
-          addedAt: now,
           lastSeenAt: 0,
           consecutiveDetections: 0,
           trackingConfirmed: false,
-          readable: true
+          readable: true,
+          lastVideoFrame: -1
         });
-        this.resizeObserver?.observe(candidate.tile);
+        this.observeCandidate(candidate);
+        changed = true;
       }
     }
+    if (changed) this.requestRender();
   }
 
   private updateLayouts(): void {
-    for (const state of this.participants.values()) updateCandidateLayout(state.candidate);
+    let changed = false;
+    for (const state of this.participants.values()) changed = updateCandidateLayout(state.candidate) || changed;
+    if (changed) this.requestRender();
   }
 
   private scheduleDetection(delay = 45): void {
-    if (!this.enabled || !this.tracker) return;
-    this.detectionTimer = window.setTimeout(() => this.detectNext(), delay);
+    if (!this.enabled || !this.tracker || document.hidden) return;
+    if (this.detectionTimer !== null) clearTimeout(this.detectionTimer);
+    this.detectionTimer = window.setTimeout(() => {
+      this.detectionTimer = null;
+      void this.detectNext();
+    }, delay);
   }
 
-  private detectNext(): void {
+  private async detectNext(): Promise<void> {
     if (!this.enabled || !this.tracker) return;
+    const tracker = this.tracker;
+    const generation = this.generation;
     const profile = performanceProfileFor(this.participants.size);
     const states = [...this.participants.values()]
       .sort((a, b) => {
@@ -234,13 +295,39 @@ class PotatoMeetController {
       return;
     }
 
-    const now = performance.now();
-    const timestamp = Math.max(Math.round(now), this.lastDetectionTimestamp + 1);
+    const videoFrame = videoFrameToken(state.candidate.video);
+    if (videoFrame === state.lastVideoFrame) {
+      // 同じ映像フレームを再解析せず、最後に確認できた顔はそのまま維持する。
+      if (state.readable && state.observation) state.lastSeenAt = performance.now();
+      this.scheduleDetection(profile.detectionDelay);
+      return;
+    }
+
+    const startedAt = performance.now();
+    const timestamp = Math.max(Math.round(startedAt), this.lastDetectionTimestamp + 1);
     this.lastDetectionTimestamp = timestamp;
-    const outcome = this.tracker.detect(state.candidate.video, timestamp, profile.detectionSize);
+    const video = state.candidate.video;
+    const outcome = await tracker.detect(video, timestamp, profile.detectionSize);
+    if (
+      !this.enabled ||
+      generation !== this.generation ||
+      tracker !== this.tracker ||
+      this.participants.get(video) !== state
+    ) return;
+    if (outcome.failed) {
+      this.detectorReady = false;
+      this.detectorError = "顔検出用の別処理が停止しました。";
+      tracker.close();
+      this.tracker = null;
+      this.requestRender();
+      return;
+    }
+    if (outcome.readable) state.lastVideoFrame = videoFrame;
+    const now = performance.now();
+    const faceHoldMs = faceHoldDuration(this.participants.size);
     state.readable = outcome.readable;
     if (outcome.observation) {
-      if (state.lastSeenAt > 0 && now - state.lastSeenAt > 500) {
+      if (state.lastSeenAt > 0 && now - state.lastSeenAt > faceHoldMs) {
         state.trackingConfirmed = false;
         state.consecutiveDetections = 0;
       }
@@ -258,62 +345,72 @@ class PotatoMeetController {
       if (state.consecutiveDetections >= 2) state.trackingConfirmed = true;
     } else {
       state.consecutiveDetections = 0;
-      if (state.lastSeenAt > 0 && now - state.lastSeenAt > 500) state.trackingConfirmed = false;
+      if (state.lastSeenAt > 0 && now - state.lastSeenAt > faceHoldMs) state.trackingConfirmed = false;
     }
+    this.requestRender();
     this.scheduleDetection(profile.detectionDelay);
   }
 
   private poses(now: number): OverlayPose[] {
     const poses: OverlayPose[] = [];
+    const faceHoldMs = faceHoldDuration(this.participants.size);
     for (const state of this.participants.values()) {
       const candidate = state.candidate;
       const shouldTrack = Boolean(
         state.readable &&
         state.observation &&
         state.trackingConfirmed &&
-        now - state.lastSeenAt <= 500
+        now - state.lastSeenAt <= faceHoldMs
       );
-      const shouldShowStatic = now - state.addedAt >= 500 || state.lastSeenAt > 0;
-      if (!shouldTrack && !shouldShowStatic) continue;
+      // 顔を連続して確認できた映像だけを、カメラONの対象として描画する。
+      // これにより、分類用の目印がない画面共有やカメラOFF映像へは表示しない。
+      if (!shouldTrack || !state.observation) continue;
 
-      const potatoRect = shouldTrack && state.observation
-        ? expandAndClampFace(
-            faceBoxToPageRect(
-              state.observation.box,
-              candidate.videoRect,
-              candidate.video.videoWidth,
-              candidate.video.videoHeight,
-              candidate.objectFit,
-              candidate.mirrored
-            ),
-            candidate.tileRect
-          )
-        : staticPotatoRect(candidate.tileRect);
+      const potatoRect = expandAndClampFace(
+        faceBoxToPageRect(
+          state.observation.box,
+          candidate.videoRect,
+          candidate.video.videoWidth,
+          candidate.video.videoHeight,
+          candidate.objectFit,
+          candidate.mirrored
+        ),
+        candidate.tileRect
+      );
       poses.push({
         x: potatoRect.x + potatoRect.width / 2,
         y: potatoRect.y + potatoRect.height / 2,
         width: potatoRect.width,
         height: potatoRect.height,
         tile: candidate.tileRect,
-        roll: shouldTrack ? state.motion.roll : 0,
-        yaw: shouldTrack ? state.motion.yaw : 0,
-        pitch: shouldTrack ? state.motion.pitch : 0,
-        mouthOpen: shouldTrack ? state.motion.mouthOpen : false,
-        isStatic: !shouldTrack
+        roll: state.motion.roll,
+        yaw: state.motion.yaw,
+        pitch: state.motion.pitch,
+        mouthOpen: state.motion.mouthOpen,
+        isStatic: false
       });
     }
     return poses;
   }
 
-  private renderLoop = (timestamp = performance.now()): void => {
-    if (!this.enabled || !this.renderer) return;
-    const profile = performanceProfileFor(this.participants.size);
-    if (timestamp - this.lastRenderTimestamp >= profile.renderInterval) {
+  private requestRender(): void {
+    if (!this.enabled || !this.renderer || document.hidden || this.animationFrame !== null) return;
+    this.animationFrame = requestAnimationFrame((timestamp) => {
+      this.animationFrame = null;
+      if (!this.enabled || !this.renderer || document.hidden) return;
       this.renderer.draw(this.poses(timestamp));
-      this.lastRenderTimestamp = timestamp;
-    }
-    this.animationFrame = requestAnimationFrame(this.renderLoop);
-  };
+    });
+  }
+
+  private observeCandidate(candidate: MeetVideoCandidate): void {
+    this.resizeObserver?.observe(candidate.tile);
+    this.resizeObserver?.observe(candidate.video);
+  }
+
+  private unobserveCandidate(candidate: MeetVideoCandidate): void {
+    this.resizeObserver?.unobserve(candidate.tile);
+    this.resizeObserver?.unobserve(candidate.video);
+  }
 }
 
 const controller = new PotatoMeetController();

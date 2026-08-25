@@ -80,6 +80,39 @@ test("模擬Meetで相手だけに表示し、ON/OFFを繰り返せる", async (
     await expect(overlay).toHaveAttribute("data-potato-variant", "classic");
     await expect(overlay).toHaveAttribute("data-sunglasses-count", "0");
 
+    await page.evaluate(async () => {
+      const sourceVideo = document.querySelector<HTMLVideoElement>("[data-participant-id='slides'] video");
+      if (!sourceVideo?.srcObject) throw new Error("複製元の画面共有映像がありません。");
+      const tile = document.createElement("div");
+      tile.id = "unmarked-screen-share";
+      tile.dataset.participantId = "unknown-content";
+      Object.assign(tile.style, {
+        position: "fixed",
+        left: "20px",
+        top: "80px",
+        width: "320px",
+        height: "180px"
+      });
+      const video = document.createElement("video");
+      Object.assign(video.style, { width: "100%", height: "100%", objectFit: "contain" });
+      video.muted = true;
+      video.srcObject = sourceVideo.srcObject;
+      tile.append(video);
+      document.body.append(tile);
+      await video.play();
+    });
+    await expect.poll(async () => (await getMeetState(worker)).trackedCount).toBe(2);
+    await page.waitForTimeout(1_200);
+    await expect(overlay).toHaveAttribute("data-potato-count", "1");
+    await page.locator("#unmarked-screen-share").evaluate((element) => element.remove());
+    await expect.poll(async () => (await getMeetState(worker)).trackedCount).toBe(1);
+
+    const renderCountBefore = Number(await overlay.getAttribute("data-render-count"));
+    await page.waitForTimeout(1_000);
+    const renderCountAfter = Number(await overlay.getAttribute("data-render-count"));
+    // 模擬映像は8fps。映像や配置が変わらない間に60fpsで同じ絵を描き直さない。
+    expect(renderCountAfter - renderCountBefore).toBeLessThanOrEqual(15);
+
     await worker.evaluate(() => chrome.storage.local.set({ sunglassesEnabled: true }));
     await expect(overlay).toHaveAttribute("data-sunglasses-count", "1");
     expect((await getMeetState(worker)).sunglassesEnabled).toBe(true);
@@ -117,10 +150,10 @@ test("模擬Meetで相手だけに表示し、ON/OFFを繰り返せる", async (
       }
       document.body.append(extras);
     });
-    await expect(overlay).toHaveAttribute("data-potato-count", "9", { timeout: 4_000 });
+    await expect(overlay).toHaveAttribute("data-potato-count", "8", { timeout: 5_000 });
     await expect.poll(async () => (await getMeetState(worker)).performanceMode).toBe("light");
     expect((await getMeetState(worker)).trackedCount).toBe(9);
-    await expect(overlay).toHaveAttribute("data-sunglasses-count", "9");
+    await expect(overlay).toHaveAttribute("data-sunglasses-count", "8");
     await page.locator("#performance-test-participants").evaluate((element) => element.remove());
     await expect(overlay).toHaveAttribute("data-potato-count", "1", { timeout: 4_000 });
 

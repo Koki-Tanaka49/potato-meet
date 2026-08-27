@@ -9,27 +9,21 @@
   <body>
     <main>
       <header class="brand">
-        <span id="selection-preview" class="brand-mark" role="img" aria-label="じゃがいも">
-          <img id="preview-body" class="preview-body" src="../potato/potato-body.png" alt="" />
-          <img id="preview-sunglasses" class="preview-sunglasses" src="../potato/sunglasses.png" alt="" hidden />
-          <img class="preview-mouth" src="../potato/mouth-open.png" alt="" />
-        </span>
-        <div>
-          <h1>Potato Meet</h1>
-          <p id="availability">Google Meet用</p>
-          <p id="selection-summary">じゃがいも</p>
-        </div>
+        <p>Google Meet用</p>
+        <h1>Potato Meet</h1>
       </header>
 
-      <section class="toggle-row" aria-labelledby="toggle-label">
-        <div>
-          <strong id="toggle-label">ポテト表示</strong>
-          <span id="state-label">オフ</span>
+      <section class="preview-section" aria-labelledby="preview-title">
+        <h2 id="preview-title">プレビュー</h2>
+        <div id="selection-preview" class="camera-preview" role="img" aria-label="じゃがいも">
+          <span class="live-dot" aria-hidden="true"></span>
+          <span class="camera-character" aria-hidden="true">
+            <img id="preview-body" class="preview-body" src="../potato/potato-body.png" alt="" />
+            <img id="preview-sunglasses" class="preview-sunglasses" src="../potato/sunglasses.png" alt="" hidden />
+            <img class="preview-mouth" src="../potato/mouth-open.png" alt="" />
+          </span>
         </div>
-        <label class="switch">
-          <input id="potato-toggle" type="checkbox" role="switch" aria-labelledby="toggle-label state-label" />
-          <span class="track"><span class="thumb"></span></span>
-        </label>
+        <p id="selection-summary" class="sr-only">じゃがいも</p>
       </section>
 
       <fieldset class="variants">
@@ -59,26 +53,37 @@
         </div>
       </fieldset>
 
-      <section class="accessory-row" aria-labelledby="sunglasses-label">
-        <div class="accessory-info">
-          <span class="accessory-preview" aria-hidden="true">
+      <div class="settings-panel">
+        <section class="setting-row" aria-labelledby="toggle-label">
+          <span class="setting-icon potato-icon" aria-hidden="true"></span>
+          <div class="setting-copy">
+            <strong id="toggle-label">ポテト表示</strong>
+            <span id="state-label">オフ</span>
+          </div>
+          <label class="switch">
+            <input id="potato-toggle" type="checkbox" role="switch" aria-labelledby="toggle-label state-label" />
+            <span class="track"><span class="thumb"></span></span>
+          </label>
+        </section>
+
+        <section class="setting-row" aria-labelledby="sunglasses-label">
+          <span class="setting-icon accessory-preview" aria-hidden="true">
             <img src="../potato/sunglasses.png" alt="" />
           </span>
-          <div>
+          <div class="setting-copy">
             <strong id="sunglasses-label">サングラス</strong>
             <span id="sunglasses-state">オフ</span>
           </div>
-        </div>
-        <label class="switch">
-          <input id="sunglasses-toggle" type="checkbox" role="switch" aria-labelledby="sunglasses-label sunglasses-state" />
-          <span class="track"><span class="thumb"></span></span>
-        </label>
-      </section>
+          <label class="switch">
+            <input id="sunglasses-toggle" type="checkbox" role="switch" aria-labelledby="sunglasses-label sunglasses-state" />
+            <span class="track"><span class="thumb"></span></span>
+          </label>
+        </section>
+      </div>
 
-      <footer>
-        <span class="privacy-dot" aria-hidden="true"></span>
-        <p id="notice">映像は保存・送信されません</p>
-      </footer>
+      <p id="connection-notice" class="connection-notice" role="status" hidden>
+        Meetタブを再読み込みしてください
+      </p>
     </main>
     <script src="popup.js"></script>
   </body>

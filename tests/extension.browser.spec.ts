@@ -180,7 +180,7 @@ test("模擬Meetで相手だけに表示し、ON/OFFを繰り返せる", async (
     const extensionId = new URL(worker.url()).host;
     const popup = await context.newPage();
     await popup.goto(`chrome-extension://${extensionId}/popup/popup.html`);
-    await popup.setViewportSize({ width: 300, height: 380 });
+    await popup.setViewportSize({ width: 360, height: 640 });
     await expect(popup.getByRole("heading", { name: "Potato Meet" })).toBeVisible();
     await expect(popup.locator("input[name='potato-variant']")).toHaveCount(3);
     await expect(popup.getByText("さつまいも", { exact: true })).toBeVisible();
@@ -188,6 +188,7 @@ test("模擬Meetで相手だけに表示し、ON/OFFを繰り返せる", async (
     await expect(popup.locator("#preview-body")).toHaveAttribute("src", /potato-body-sweet\.png$/);
     await expect(popup.locator("#preview-sunglasses")).toBeVisible();
     await expect(popup.locator("#selection-summary")).toHaveText("さつまいも + サングラス");
+    await expect(popup.locator("#connection-notice")).toBeVisible();
 
     // ポップアップを開いたままMeet側の設定が変わっても、表示を同期する。
     await worker.evaluate(() => chrome.storage.local.set({

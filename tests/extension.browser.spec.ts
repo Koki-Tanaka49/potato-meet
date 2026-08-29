@@ -183,11 +183,11 @@ test("模擬Meetで相手だけに表示し、ON/OFFを繰り返せる", async (
     await popup.setViewportSize({ width: 360, height: 640 });
     await expect(popup.getByRole("heading", { name: "Potato Meet" })).toBeVisible();
     await expect(popup.locator("input[name='potato-variant']")).toHaveCount(3);
-    await expect(popup.getByText("さつまいも", { exact: true })).toBeVisible();
+    await expect(popup.getByText("Sweet potato", { exact: true })).toBeVisible();
     await expect(popup.locator("#sunglasses-toggle")).toBeChecked();
     await expect(popup.locator("#preview-body")).toHaveAttribute("src", /potato-body-sweet\.png$/);
     await expect(popup.locator("#preview-sunglasses")).toBeVisible();
-    await expect(popup.locator("#selection-summary")).toHaveText("さつまいも + サングラス");
+    await expect(popup.locator("#selection-summary")).toHaveText("Sweet potato + sunglasses");
     await expect(popup.locator("#connection-notice")).toBeVisible();
 
     // ポップアップを開いたままMeet側の設定が変わっても、表示を同期する。
@@ -199,7 +199,7 @@ test("模擬Meetで相手だけに表示し、ON/OFFを繰り返せる", async (
     await expect(popup.locator("#sunglasses-toggle")).not.toBeChecked();
     await expect(popup.locator("#preview-body")).toHaveAttribute("src", /potato-body-purple\.png$/);
     await expect(popup.locator("#preview-sunglasses")).toBeHidden();
-    await expect(popup.locator("#selection-summary")).toHaveText("紫いも");
+    await expect(popup.locator("#selection-summary")).toHaveText("Purple potato");
     await popup.screenshot({ path: "docs/images/potato-meet-popup.png" });
   } finally {
     await context.close();

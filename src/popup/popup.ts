@@ -21,7 +21,7 @@ if (
   !previewElement || !previewBodyElement ||
   !previewSunglassesElement || !selectionSummaryElement || !connectionNoticeElement
 ) {
-  throw new Error("ポップアップを初期化できませんでした。");
+  throw new Error("Could not initialize the popup.");
 }
 
 const toggle: HTMLInputElement = toggleElement;
@@ -37,9 +37,9 @@ let storedSunglassesEnabled = false;
 let selectedVariant: PotatoVariant = "classic";
 
 const VARIANT_DETAILS: Record<PotatoVariant, { label: string; path: string }> = {
-  classic: { label: "じゃがいも", path: "potato/potato-body.png" },
-  sweet: { label: "さつまいも", path: "potato/potato-body-sweet.png" },
-  purple: { label: "紫いも", path: "potato/potato-body-purple.png" }
+  classic: { label: "Classic potato", path: "potato/potato-body.png" },
+  sweet: { label: "Sweet potato", path: "potato/potato-body-sweet.png" },
+  purple: { label: "Purple potato", path: "potato/potato-body-purple.png" }
 };
 
 async function activeTab(): Promise<chrome.tabs.Tab | undefined> {
@@ -69,7 +69,7 @@ function updatePreview(): void {
   previewSunglasses.hidden = !storedSunglassesEnabled;
   preview.dataset.variant = selectedVariant;
   const summary = storedSunglassesEnabled
-    ? `${selected.label} + サングラス`
+    ? `${selected.label} + sunglasses`
     : selected.label;
   selectionSummary.textContent = summary;
   preview.setAttribute("aria-label", summary);
@@ -80,10 +80,10 @@ function render(response: ExtensionStateResponse | null): void {
   connectionNotice.hidden = response !== null;
   toggle.disabled = !availableHere;
   toggle.checked = Boolean(response?.enabled);
-  stateLabel.textContent = toggle.checked ? "オン" : "オフ";
+  stateLabel.textContent = toggle.checked ? "On" : "Off";
   if (response) storedSunglassesEnabled = response.sunglassesEnabled;
   sunglassesToggle.checked = storedSunglassesEnabled;
-  sunglassesState.textContent = sunglassesToggle.checked ? "オン" : "オフ";
+  sunglassesState.textContent = sunglassesToggle.checked ? "On" : "Off";
 
   if (response) selectVariant(response.variant);
   updatePreview();
@@ -109,7 +109,7 @@ for (const input of variantElements) {
 
 sunglassesToggle.addEventListener("change", async () => {
   storedSunglassesEnabled = sunglassesToggle.checked;
-  sunglassesState.textContent = storedSunglassesEnabled ? "オン" : "オフ";
+  sunglassesState.textContent = storedSunglassesEnabled ? "On" : "Off";
   updatePreview();
   await chrome.storage.local.set({ sunglassesEnabled: storedSunglassesEnabled });
   const response = await send({ type: "POTATO_SET_SUNGLASSES", enabled: storedSunglassesEnabled });
@@ -127,7 +127,7 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
   if (typeof sunglassesEnabled === "boolean") {
     storedSunglassesEnabled = sunglassesEnabled;
     sunglassesToggle.checked = sunglassesEnabled;
-    sunglassesState.textContent = sunglassesEnabled ? "オン" : "オフ";
+    sunglassesState.textContent = sunglassesEnabled ? "On" : "Off";
     updatePreview();
   }
 });

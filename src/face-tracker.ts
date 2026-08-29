@@ -35,7 +35,7 @@ export class FaceTracker {
     // Content Scriptはページと別の環境で動くが、WorkerのURL判定にはページ側の
     // オリジンが使われる。拡張機能内の検証済みコードをBlobへ移して起動する。
     const workerScript = await fetch(chrome.runtime.getURL("face-tracker-worker.js"));
-    if (!workerScript.ok) throw new Error("顔検出用の別処理を読み込めませんでした。");
+    if (!workerScript.ok) throw new Error("Could not load the face-tracking worker.");
     const workerUrl = URL.createObjectURL(new Blob([await workerScript.text()], { type: "text/javascript" }));
     let worker: Worker;
     try {
@@ -51,12 +51,12 @@ export class FaceTracker {
             resolve();
           } else if (event.data.type === "init-error") {
             cleanup();
-            reject(new Error(event.data.error || "顔検出を初期化できませんでした。"));
+            reject(new Error(event.data.error || "Could not initialize face tracking."));
           }
         };
         const handleError = (): void => {
           cleanup();
-          reject(new Error("顔検出用の別処理を開始できませんでした。"));
+          reject(new Error("Could not start the face-tracking worker."));
         };
         const cleanup = (): void => {
           worker.removeEventListener("message", handleMessage);

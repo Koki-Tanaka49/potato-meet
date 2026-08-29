@@ -56,7 +56,7 @@ function landmarksToBox(landmarks: NormalizedLandmark[]): NormalizedFaceBox {
 async function initialize(message: InitMessage): Promise<void> {
   workerScope.importScripts(message.wasmLoaderPath);
   if (!workerScope.PotatoMeetModuleFactory) {
-    throw new Error("MediaPipeのローカル実行環境を読み込めませんでした。");
+    throw new Error("Could not load the local MediaPipe runtime.");
   }
   workerScope.ModuleFactory = workerScope.PotatoMeetModuleFactory;
   landmarker = await FaceLandmarker.createFromOptions(

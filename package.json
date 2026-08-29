@@ -3,7 +3,7 @@
   "version": "0.3.1",
   "private": true,
   "type": "module",
-  "description": "Google Meetの相手の顔へポテトを重ねるChrome拡張機能",
+  "description": "A Chrome extension that overlays animated potatoes on faces in Google Meet",
   "engines": {
     "node": ">=20"
   },

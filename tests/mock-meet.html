@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Potato Meet 模擬会議</title>
+    <title>Potato Meet Demo Call</title>
     <style>
       * { box-sizing: border-box; }
       body { margin: 0; min-height: 100vh; overflow: hidden; background: #151515; color: white; font-family: Arial, sans-serif; }
@@ -19,19 +19,19 @@
     </style>
   </head>
   <body>
-    <header><strong>Potato Meet 模擬会議</strong><span>22:45　abc-defg-hij</span></header>
+    <header><strong>Potato Meet Demo Call</strong><span>22:45　abc-defg-hij</span></header>
     <div class="grid">
       <section class="tile" data-participant-id="remote-aki" data-participant-name="Aki">
         <video id="remote" autoplay muted playsinline></video><span class="name">Aki</span>
       </section>
-      <section class="tile" data-participant-id="local" data-is-self="true" aria-label="あなたの映像">
-        <video id="local" autoplay muted playsinline></video><span class="name">あなた</span>
+      <section class="tile" data-participant-id="local" data-is-self="true" aria-label="Your video">
+        <video id="local" autoplay muted playsinline></video><span class="name">You</span>
       </section>
-      <section class="tile" data-participant-id="slides" data-screen-share="true" aria-label="画面共有">
-        <video id="share" autoplay muted playsinline></video><span class="name">画面共有</span>
+      <section class="tile" data-participant-id="slides" data-screen-share="true" aria-label="Screen share">
+        <video id="share" autoplay muted playsinline></video><span class="name">Screen share</span>
       </section>
     </div>
-    <footer>マイク　　カメラ　　通話を終了</footer>
+    <footer>Microphone　　Camera　　Leave call</footer>
     <script>
       const remotePortrait = new Image();
       remotePortrait.src = "__REMOTE_PORTRAIT_DATA_URL__";

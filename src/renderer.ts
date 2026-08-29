@@ -18,7 +18,7 @@ function loadImage(path: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const image = new Image();
     image.addEventListener("load", () => resolve(image), { once: true });
-    image.addEventListener("error", () => reject(new Error(`素材を読み込めません: ${path}`)), { once: true });
+    image.addEventListener("error", () => reject(new Error(`Could not load asset: ${path}`)), { once: true });
     image.src = chrome.runtime.getURL(path);
   });
 }
@@ -54,7 +54,7 @@ export class PotatoRenderer {
       zIndex: "2147483646"
     });
     const context = canvas.getContext("2d");
-    if (!context) throw new Error("描画用Canvasを作成できませんでした。");
+    if (!context) throw new Error("Could not create the rendering canvas.");
     const [classic, sweet, purple, sunglasses, mouthClosed, mouthOpen] = await Promise.all([
       loadImage(BODY_PATHS.classic),
       loadImage(BODY_PATHS.sweet),

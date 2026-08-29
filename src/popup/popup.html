@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ja">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -9,13 +9,13 @@
   <body>
     <main>
       <header class="brand">
-        <p>Google Meet用</p>
+        <p>Made for Google Meet</p>
         <h1>Potato Meet</h1>
       </header>
 
       <section class="preview-section" aria-labelledby="preview-title">
-        <h2 id="preview-title">プレビュー</h2>
-        <div id="selection-preview" class="camera-preview" role="img" aria-label="じゃがいも">
+        <h2 id="preview-title">Preview</h2>
+        <div id="selection-preview" class="camera-preview" role="img" aria-label="Classic potato">
           <span class="live-dot" aria-hidden="true"></span>
           <span class="camera-character" aria-hidden="true">
             <img id="preview-body" class="preview-body" src="../potato/potato-body.png" alt="" />
@@ -23,31 +23,31 @@
             <img class="preview-mouth" src="../potato/mouth-open.png" alt="" />
           </span>
         </div>
-        <p id="selection-summary" class="sr-only">じゃがいも</p>
+        <p id="selection-summary" class="sr-only">Classic potato</p>
       </section>
 
       <fieldset class="variants">
-        <legend>ポテトを選ぶ</legend>
+        <legend>Choose a potato</legend>
         <div class="variant-list">
           <label class="variant-option">
             <input type="radio" name="potato-variant" value="classic" checked />
             <span class="variant-content">
               <span class="variant-preview"><img src="../potato/potato-body.png" alt="" /></span>
-              <span>じゃがいも</span>
+              <span>Classic</span>
             </span>
           </label>
           <label class="variant-option">
             <input type="radio" name="potato-variant" value="sweet" />
             <span class="variant-content">
               <span class="variant-preview"><img src="../potato/potato-body-sweet.png" alt="" /></span>
-              <span>さつまいも</span>
+              <span>Sweet potato</span>
             </span>
           </label>
           <label class="variant-option">
             <input type="radio" name="potato-variant" value="purple" />
             <span class="variant-content">
               <span class="variant-preview"><img src="../potato/potato-body-purple.png" alt="" /></span>
-              <span>紫いも</span>
+              <span>Purple</span>
             </span>
           </label>
         </div>
@@ -57,8 +57,8 @@
         <section class="setting-row" aria-labelledby="toggle-label">
           <span class="setting-icon potato-icon" aria-hidden="true"></span>
           <div class="setting-copy">
-            <strong id="toggle-label">ポテト表示</strong>
-            <span id="state-label">オフ</span>
+            <strong id="toggle-label">Show potatoes</strong>
+            <span id="state-label">Off</span>
           </div>
           <label class="switch">
             <input id="potato-toggle" type="checkbox" role="switch" aria-labelledby="toggle-label state-label" />
@@ -71,8 +71,8 @@
             <img src="../potato/sunglasses.png" alt="" />
           </span>
           <div class="setting-copy">
-            <strong id="sunglasses-label">サングラス</strong>
-            <span id="sunglasses-state">オフ</span>
+            <strong id="sunglasses-label">Sunglasses</strong>
+            <span id="sunglasses-state">Off</span>
           </div>
           <label class="switch">
             <input id="sunglasses-toggle" type="checkbox" role="switch" aria-labelledby="sunglasses-label sunglasses-state" />
@@ -82,7 +82,7 @@
       </div>
 
       <p id="connection-notice" class="connection-notice" role="status" hidden>
-        Meetタブを再読み込みしてください
+        Open or reload a Google Meet tab to connect
       </p>
     </main>
     <script src="popup.js"></script>

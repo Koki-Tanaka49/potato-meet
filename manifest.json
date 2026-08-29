@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Potato Meet",
   "version": "0.3.1",
-  "description": "Google Meetの相手の顔を、動くポテトで楽しく隠します。",
+  "description": "Cover other participants' faces in Google Meet with animated potatoes, processed entirely in your browser.",
   "action": {
     "default_title": "Potato Meet",
     "default_popup": "popup/popup.html"

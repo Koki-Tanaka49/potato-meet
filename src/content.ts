@@ -101,7 +101,7 @@ class PotatoMeetController {
       this.renderer = await PotatoRenderer.create(this.variant, this.sunglassesEnabled);
     } catch {
       this.enabled = false;
-      throw new Error("ポテト素材を読み込めませんでした。");
+      throw new Error("Could not load the potato assets.");
     }
     if (!this.enabled || generation !== this.generation) {
       this.renderer.destroy();
@@ -316,7 +316,7 @@ class PotatoMeetController {
     ) return;
     if (outcome.failed) {
       this.detectorReady = false;
-      this.detectorError = "顔検出用の別処理が停止しました。";
+      this.detectorError = "The face-tracking worker stopped unexpectedly.";
       tracker.close();
       this.tracker = null;
       this.requestRender();

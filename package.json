@@ -1,6 +1,6 @@
 {
   "name": "potato-meet",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "private": true,
   "type": "module",
   "description": "A Chrome extension that overlays animated potatoes on faces in Google Meet",
@@ -11,6 +11,8 @@
     "assets": "node scripts/prepare-assets.mjs",
     "model": "node scripts/fetch-model.mjs",
     "build": "node scripts/build.mjs",
+    "package": "npm run build && node scripts/package.mjs",
+    "release:check": "npm run package && node scripts/package.mjs --check",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",

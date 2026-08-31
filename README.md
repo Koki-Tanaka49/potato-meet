@@ -1,6 +1,6 @@
 # Potato Meet
 
-Potato Meet is a Chrome extension that overlays animated potatoes on other participants' faces in Google Meet. All processing stays in your browser, and no video or face data is stored or transmitted.
+Potato Meet is a Chrome extension that overlays animated potatoes on other participants' faces in Google Meet. Video frames and face estimates are processed in your browser and are not persistently stored by the extension.
 
 ![Potato Meet in Google Meet](docs/images/potato-meet-browser.png)
 
@@ -57,6 +57,12 @@ Head direction, mouth movement, and long-running behavior are verified manually 
 - [Current specification](docs/spec.md)
 - [Image assets](docs/assets.md)
 - [Third-party software](docs/third-party.md)
+- [Chrome Web Store listing text](docs/chrome-web-store-listing.md)
+- [Privacy policy draft](docs/privacy-policy.md)
+- [Publishing checklist](docs/publishing-checklist.md)
+- [MediaPipe distribution and privacy review](docs/mediapipe-distribution-review.md)
+
+Do not publish until the MediaPipe review is resolved and the operator, contact, support, and public privacy-policy URL placeholders are replaced with confirmed values.
 
 ## Privacy
 
@@ -64,7 +70,7 @@ Head direction, mouth movement, and long-running behavior are verified manually 
 - The extension runs only on `https://meet.google.com/*`.
 - It does not request microphone, camera, recording, or browsing-history permissions.
 - It does not use a CDN, analytics service, or remote logging.
-- It does not store video, face images, face landmarks, participant names, or meeting URLs.
+- It does not persistently store video, face images, face landmarks, participant names, or meeting URLs.
 
 ## License
 

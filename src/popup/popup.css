@@ -371,6 +371,14 @@ h1 {
   opacity: 0.55;
 }
 
+.privacy-note {
+  margin: 10px 4px 0;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.45;
+  text-align: center;
+}
+
 .connection-notice {
   margin: 10px 0 0;
   padding: 9px 11px;

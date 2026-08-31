@@ -28,6 +28,11 @@ await build({
 
 await cp(path.join(root, "manifest.json"), path.join(dist, "manifest.json"));
 await cp(path.join(root, "public"), dist, { recursive: true });
+// 画像生成用の原版はストア提出用パッケージへ含めない。
+await Promise.all([
+  rm(path.join(dist, "icons/potato-meet-icon-generated-source.png")),
+  rm(path.join(dist, "icons/potato-meet-icon-master.png"))
+]);
 await cp(path.join(root, "docs/third-party.md"), path.join(dist, "THIRD_PARTY_NOTICES.md"));
 await mkdir(path.join(dist, "licenses"), { recursive: true });
 await cp(

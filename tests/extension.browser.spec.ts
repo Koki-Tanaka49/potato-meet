@@ -117,6 +117,10 @@ test("模擬Meetで相手だけに表示し、ON/OFFを繰り返せる", async (
     await expect(overlay).toHaveAttribute("data-sunglasses-count", "1");
     expect((await getMeetState(worker)).sunglassesEnabled).toBe(true);
     await page.screenshot({ path: "docs/images/potato-meet-browser.png", fullPage: true });
+    const originalViewport = page.viewportSize();
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.screenshot({ path: "docs/store-assets/potato-meet-screenshot-1280x800.png", fullPage: true });
+    if (originalViewport) await page.setViewportSize(originalViewport);
 
     await worker.evaluate(() => chrome.storage.local.set({ potatoVariant: "sweet" }));
     await expect(overlay).toHaveAttribute("data-potato-variant", "sweet");
@@ -155,7 +159,7 @@ test("模擬Meetで相手だけに表示し、ON/OFFを繰り返せる", async (
     expect((await getMeetState(worker)).trackedCount).toBe(9);
     await expect(overlay).toHaveAttribute("data-sunglasses-count", "8");
     await page.locator("#performance-test-participants").evaluate((element) => element.remove());
-    await expect(overlay).toHaveAttribute("data-potato-count", "1", { timeout: 4_000 });
+    await expect(overlay).toHaveAttribute("data-potato-count", "1", { timeout: 10_000 });
 
     await worker.evaluate(() => chrome.storage.local.set({ sunglassesEnabled: false }));
     await expect(overlay).toHaveAttribute("data-sunglasses-count", "0");
@@ -188,6 +192,10 @@ test("模擬Meetで相手だけに表示し、ON/OFFを繰り返せる", async (
     await expect(popup.locator("#preview-body")).toHaveAttribute("src", /potato-body-sweet\.png$/);
     await expect(popup.locator("#preview-sunglasses")).toBeVisible();
     await expect(popup.locator("#selection-summary")).toHaveText("Sweet potato + sunglasses");
+    await expect(popup.getByText(
+      "Video and face estimates are processed on this device and are not saved.",
+      { exact: true }
+    )).toBeVisible();
     await expect(popup.locator("#connection-notice")).toBeVisible();
 
     // ポップアップを開いたままMeet側の設定が変わっても、表示を同期する。

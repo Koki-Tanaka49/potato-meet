@@ -21,37 +21,19 @@ const iconSizes = new Map([
 await mkdir(iconsDir, { recursive: true });
 await mkdir(storeAssetsDir, { recursive: true });
 
-// Convert the generated source into the exact three-colour production mark.
-// Alpha and anti-aliased edges come from the generated source; RGB values are
-// normalized here so no gradient, shadow or texture remains.
-const { data: sourcePixels, info: sourceInfo } = await sharp(generatedSourcePath)
-  .ensureAlpha()
-  .raw()
-  .toBuffer({ resolveWithObject: true });
-const flatPixels = Buffer.from(sourcePixels);
-for (let offset = 0; offset < flatPixels.length; offset += 4) {
-  const red = sourcePixels[offset];
-  const green = sourcePixels[offset + 1];
-  const alpha = sourcePixels[offset + 3];
-  if (alpha === 0) {
-    flatPixels[offset] = 0;
-    flatPixels[offset + 1] = 0;
-    flatPixels[offset + 2] = 0;
-  } else if (red < 100) {
-    flatPixels[offset] = 38;
-    flatPixels[offset + 1] = 49;
-    flatPixels[offset + 2] = 58;
-  } else if (green < 165) {
-    flatPixels[offset] = 204;
-    flatPixels[offset + 1] = 122;
-    flatPixels[offset + 2] = 31;
-  } else {
-    flatPixels[offset] = 245;
-    flatPixels[offset + 1] = 185;
-    flatPixels[offset + 2] = 59;
-  }
+// Preserve the approved artwork exactly. Validate the image-generation export
+// before it becomes the production master so a flattened preview cannot slip in.
+const sourceMetadata = await sharp(generatedSourcePath).metadata();
+if (
+  sourceMetadata.width !== 1254 ||
+  sourceMetadata.height !== 1254 ||
+  sourceMetadata.hasAlpha !== true
+) {
+  throw new Error(
+    "The icon source must be a 1254 x 1254 PNG with an alpha channel."
+  );
 }
-await sharp(flatPixels, { raw: sourceInfo }).png().toFile(masterPath);
+await sharp(generatedSourcePath).ensureAlpha().png().toFile(masterPath);
 
 // Remove the generous image-generation canvas margin while preserving alpha.
 const trimmedIcon = await sharp(masterPath)
@@ -88,15 +70,15 @@ const promoIcon = await sharp(trimmedIcon)
 
 const smallPromoBackdrop = Buffer.from(`
   <svg width="440" height="280" xmlns="http://www.w3.org/2000/svg">
-    <rect width="440" height="280" fill="#18343d"/>
-    <circle cx="30" cy="42" r="82" fill="#e9682c"/>
-    <circle cx="419" cy="252" r="104" fill="#f1a72e"/>
-    <rect x="100" y="20" width="240" height="240" rx="64" fill="#ffedc8"/>
-    <circle cx="329" cy="55" r="11" fill="#ff6427"/>
+    <rect width="440" height="280" fill="#fff7e8"/>
+    <circle cx="30" cy="42" r="82" fill="#b95508"/>
+    <circle cx="419" cy="252" r="104" fill="#f7b33b"/>
+    <rect x="100" y="20" width="240" height="240" rx="64" fill="#ffffff"/>
+    <circle cx="329" cy="55" r="11" fill="#d5680a"/>
   </svg>
 `);
 
-await sharp({ create: { width: 440, height: 280, channels: 4, background: "#18343d" } })
+await sharp({ create: { width: 440, height: 280, channels: 4, background: "#fff7e8" } })
   .composite([
     { input: smallPromoBackdrop, left: 0, top: 0 },
     { input: promoIcon, left: 110, top: 30 }
@@ -122,16 +104,16 @@ const marqueeIcon = await sharp(trimmedIcon)
 
 const marqueeBackdrop = Buffer.from(`
   <svg width="1400" height="560" xmlns="http://www.w3.org/2000/svg">
-    <rect width="1400" height="560" fill="#18343d"/>
-    <circle cx="62" cy="506" r="190" fill="#e9682c"/>
-    <circle cx="1360" cy="40" r="176" fill="#f1a72e"/>
-    <rect x="54" y="60" width="440" height="440" rx="112" fill="#ffedc8"/>
-    <rect x="550" y="42" width="816" height="476" rx="38" fill="#0f242a" stroke="#f1a72e" stroke-width="4"/>
-    <circle cx="468" cy="100" r="16" fill="#ff6427"/>
+    <rect width="1400" height="560" fill="#fff7e8"/>
+    <circle cx="62" cy="506" r="190" fill="#b95508"/>
+    <circle cx="1360" cy="40" r="176" fill="#f7b33b"/>
+    <rect x="54" y="60" width="440" height="440" rx="112" fill="#ffffff"/>
+    <rect x="550" y="42" width="816" height="476" rx="38" fill="#ffffff" stroke="#b95508" stroke-width="4"/>
+    <circle cx="468" cy="100" r="16" fill="#d5680a"/>
   </svg>
 `);
 
-await sharp({ create: { width: 1400, height: 560, channels: 4, background: "#18343d" } })
+await sharp({ create: { width: 1400, height: 560, channels: 4, background: "#fff7e8" } })
   .composite([
     { input: marqueeBackdrop, left: 0, top: 0 },
     { input: marqueeIcon, left: 94, top: 100 },

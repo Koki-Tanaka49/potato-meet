@@ -53,6 +53,10 @@
         </div>
       </fieldset>
 
+      <p id="privacy-note" class="privacy-note">
+        Before you turn it on: Potato Meet processes visible Meet video, face estimates, and participant tile text on this device to place potatoes. It does not save or upload them.
+      </p>
+
       <div class="settings-panel">
         <section class="setting-row" aria-labelledby="toggle-label">
           <span class="setting-icon potato-icon" aria-hidden="true"></span>
@@ -61,7 +65,7 @@
             <span id="state-label">Off</span>
           </div>
           <label class="switch">
-            <input id="potato-toggle" type="checkbox" role="switch" aria-labelledby="toggle-label state-label" />
+            <input id="potato-toggle" type="checkbox" role="switch" aria-labelledby="toggle-label state-label" aria-describedby="privacy-note" />
             <span class="track"><span class="thumb"></span></span>
           </label>
         </section>
@@ -80,10 +84,6 @@
           </label>
         </section>
       </div>
-
-      <p class="privacy-note">
-        Video and face estimates are processed on this device and are not saved.
-      </p>
 
       <p id="connection-notice" class="connection-notice" role="status" hidden>
         Open or reload a Google Meet tab to connect

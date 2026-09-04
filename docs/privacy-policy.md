@@ -1,13 +1,19 @@
+---
+layout: default
+title: Potato Meet Privacy Policy / プライバシーポリシー
+---
+
 # Potato Meet Privacy Policy / プライバシーポリシー
 
-> Draft for publication. Before publishing, replace every bracketed placeholder and complete the MediaPipe review described below. This document is an operational template, not legal advice.
+> Draft for publication. Before publishing, replace every bracketed placeholder and verify the final release package. This document is an operational template, not legal advice.
 >
-> 公開用ドラフトです。公開前に角括弧のプレースホルダーをすべて置き換え、後述のMediaPipe確認を完了してください。本書は運用のためのひな型であり、法的助言ではありません。
+> 公開用ドラフトです。公開前に角括弧のプレースホルダーをすべて置き換え、最終配布パッケージを確認してください。本書は運用のためのひな型であり、法的助言ではありません。
 
-- Last updated / 最終更新日: 2026-09-01
+- Last updated / 最終更新日: 2026-09-04
 - Effective date / 発効日: `[PUBLICATION DATE / 公開日]`
-- Operator / 運営者: `[DEVELOPER OR ORGANIZATION NAME / 開発者または組織名]`
-- Contact / 問い合わせ先: `[CONTACT EMAIL OR SUPPORT FORM URL / 連絡用メールアドレスまたは問い合わせフォームURL]`
+- Operator / 運営者: Koki Tanaka
+- Support page / サポートページ: https://koki-tanaka49.github.io/potato-meet/
+- Contact email / 問い合わせ用メールアドレス: koki.tanaka.workwork@gmail.com
 
 ---
 
@@ -15,7 +21,7 @@
 
 ### 1. 対象
 
-本プライバシーポリシーは、Chrome拡張機能「Potato Meet」（以下「本拡張機能」）に適用されます。運営者は`[DEVELOPER OR ORGANIZATION NAME]`です。
+本プライバシーポリシーは、Chrome拡張機能「Potato Meet」（以下「本拡張機能」）に適用されます。運営者はKoki Tanakaです。
 
 ### 2. 単一の目的
 
@@ -51,13 +57,13 @@ Chrome Web Storeの方針では、端末内だけで処理する情報も開示�
 
 ポテトの種類とサングラス設定は、利用者のChrome内にだけ保存されます。これらの設定を運営者へ送信する仕組みはありません。
 
-### 6. MediaPipeとGoogleへの指標送信に関する未確定事項
+### 6. MediaPipeの利用と外部通信の確認
 
 本拡張機能は、`@mediapipe/tasks-vision@0.10.21`、同梱したWebAssemblyファイル、同梱した`face_landmarker.task`を使用します。GoogleのMediaPipe Tasks Privacy Noticeは、入力画像や動画は端末上で処理されGoogleのサーバーへ送られないと説明しています。一方、同じ告知は、MediaPipe Tasks APIが性能と利用状況の指標をGoogleへ送信すると説明しています。MediaPipe APIs Terms of Serviceには、SDKの利用状況、推論回数、ハードウェア性能、アプリID、処理媒体の一般的な特徴、ホスト環境などの例があります。
 
-本プロジェクトの対象版0.10.21を使った現在の自動試験では、対象の操作中に外部HTTP通信は観測されていません。ただし、この試験だけでは、時間差、環境差、別の実行経路で指標が送信される可能性まで否定できません。Googleの告知も0.10.21のWeb版に限定した説明ではないため、対象版の実際の挙動は確認中です。
+最終配布候補で固定している0.10.21について、自動試験中の外部HTTP通信は観測されず、配布用JavaScriptとWebAssemblyからも既知のMediaPipe指標送信先やAPIキーヘッダーは見つかっていません。ビルドは、0.10.21以外のバージョン、または既知の送信実装を示す文字列を検出した場合に失敗します。
 
-公開前に、運営者はこの点を解決しなければなりません。最終配布版で指標送信が行われる、または合理的に否定できない場合は、送信される情報、送信先であるGoogle、目的、保持期間またはGoogleの適用方針、必要な同意方法を本ポリシーとChrome Web Storeの申告に反映します。Googleによる保持期間は現在確認できていないため、本書では断定しません。現行プロジェクトには、運営者がこれらの指標を受け取るための管理画面や連携機能はありません。
+以上の最終配布候補の技術確認に基づき、Potato Meetは処理対象の映像、顔の推定結果、Meetの表示テキストをGoogleまたは運営者へ送信しない実装として公開します。MediaPipeを更新する場合は、更新版の外部通信と利用条件を改めて確認し、必要に応じて本ポリシー、Chrome Web Storeの申告、製品内の説明と同意方法を更新します。
 
 公式資料:
 
@@ -71,7 +77,6 @@ Chrome Web Storeの方針では、端末内だけで処理する情報も開示�
 - Meet上の表示テキストと属性は分類時に一時参照し、永続保存しません。
 - ポテトの種類とサングラス設定は、利用者が変更する、Chromeで拡張機能のデータを消去する、または本拡張機能をアンインストールするまで端末内に保持されます。
 - 運営者のサーバーに利用者データを保持する仕組みはありません。
-- MediaPipe指標が対象版から送信される場合のGoogle側の保持期間は確認中です。
 
 ### 8. 情報の保護
 
@@ -89,9 +94,10 @@ Chrome Web Storeの方針では、端末内だけで処理する情報も開示�
 
 本ポリシーまたは本拡張機能の情報の取り扱いに関する問い合わせ先:
 
-- 運営者: `[DEVELOPER OR ORGANIZATION NAME]`
-- メールまたは問い合わせフォーム: `[CONTACT EMAIL OR SUPPORT FORM URL]`
-- 所在地（必要な場合）: `[MAILING ADDRESS OR NOT APPLICABLE]`
+- 運営者: Koki Tanaka
+- サポートページ: https://koki-tanaka49.github.io/potato-meet/
+- メール: koki.tanaka.workwork@gmail.com
+- 所在地: 該当なし
 
 ---
 
@@ -99,7 +105,7 @@ Chrome Web Storeの方針では、端末内だけで処理する情報も開示�
 
 ### 1. Scope
 
-This Privacy Policy applies to the Potato Meet Chrome extension (the “Extension”). The operator is `[DEVELOPER OR ORGANIZATION NAME]`.
+This Privacy Policy applies to the Potato Meet Chrome extension (the “Extension”). The operator is Koki Tanaka.
 
 ### 2. Single purpose
 
@@ -135,13 +141,13 @@ The current implementation has no operator-controlled server, account registrati
 
 The potato style and sunglasses setting remain in the user's Chrome profile. The Extension has no mechanism to send those settings to the operator.
 
-### 6. Unresolved MediaPipe metrics question
+### 6. MediaPipe use and external-traffic review
 
 The Extension uses `@mediapipe/tasks-vision@0.10.21`, bundled WebAssembly files, and a bundled `face_landmarker.task` file. Google's MediaPipe Tasks Privacy Notice says that input images and video are processed on-device and are not sent to Google servers. The same notice says that MediaPipe Tasks APIs send performance and utilization metrics to Google. The MediaPipe APIs Terms of Service gives examples including SDK usage, inference counts, hardware performance, app ID, general characteristics of processed media, and host environment.
 
-The project's current automated test did not observe external HTTP traffic during the covered flow with version 0.10.21. That test does not rule out delayed, environment-specific, or other execution paths. Google's notice is not specific to the Web 0.10.21 package, so the exact behavior of the version used here remains under review.
+For version 0.10.21 pinned in the final release candidate, automated testing observed no external HTTP traffic. The distributed JavaScript and WebAssembly also contain neither the known MediaPipe metrics endpoint nor its API-key header. The build fails if it finds those known indicators or a MediaPipe version other than 0.10.21.
 
-The operator must resolve this issue before publication. If the final package sends metrics, or if such transmission cannot reasonably be ruled out, the operator will update this policy and the Chrome Web Store disclosures with the exact information sent, Google as the recipient, the purpose, the retention period or applicable Google policy, and any required consent flow. Google's retention period for any such metrics has not been confirmed and is not asserted here. The current project has no dashboard or integration through which the operator receives these metrics.
+Based on this technical review of the final release candidate, Potato Meet is published as an implementation that does not send processed video, facial estimates, or Meet display text to Google or the operator. Before any MediaPipe update, the operator will review the new version's external traffic and terms and update this policy, the Chrome Web Store disclosures, the in-product disclosure, and any required consent flow as needed.
 
 Official sources:
 
@@ -155,7 +161,6 @@ Official sources:
 - Meet display text and attributes are read temporarily for classification and are not persistently stored.
 - The potato style and sunglasses setting remain on the device until the user changes them, clears the Extension's data in Chrome, or uninstalls the Extension.
 - There is no operator server that retains user data.
-- Google's retention period remains under review if the MediaPipe version sends metrics.
 
 ### 8. Security
 
@@ -173,9 +178,10 @@ Before beginning a materially different data practice, the operator will update 
 
 Questions about this policy or the Extension's handling of information can be sent to:
 
-- Operator: `[DEVELOPER OR ORGANIZATION NAME]`
-- Email or support form: `[CONTACT EMAIL OR SUPPORT FORM URL]`
-- Mailing address, if required: `[MAILING ADDRESS OR NOT APPLICABLE]`
+- Operator: Koki Tanaka
+- Support page: https://koki-tanaka49.github.io/potato-meet/
+- Email: koki.tanaka.workwork@gmail.com
+- Mailing address: Not applicable
 
 ## Policy sources
 

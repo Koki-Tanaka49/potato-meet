@@ -1,8 +1,8 @@
 # Chrome Web Store listing and review text
 
-Updated: 2026-09-01
+Updated: 2026-09-04
 
-This document contains paste-ready text for the Chrome Web Store Developer Dashboard. It is not legal advice. Do not submit the item until the two MediaPipe blockers in [mediapipe-distribution-review.md](./mediapipe-distribution-review.md) are resolved and all placeholders are replaced.
+This document contains paste-ready text for the Chrome Web Store Developer Dashboard. It is not legal advice. The MediaPipe release review is recorded in [mediapipe-distribution-review.md](./mediapipe-distribution-review.md); replace all remaining placeholders and complete the non-MediaPipe release checks before submission.
 
 ## Current implementation used for these statements
 
@@ -14,18 +14,17 @@ This document contains paste-ready text for the Chrome Web Store Developer Dashb
 | Main processing | Other participants' visible video frames are processed in a local Worker using bundled MediaPipe JavaScript, WebAssembly, and model files |
 | Persistent data | Potato style and sunglasses setting in `chrome.storage.local` |
 | Not persistently stored | Video, face images, facial landmarks, direction, mouth state, participant names, meeting URL, and audio |
-| External runtime traffic | No external HTTP request was observed in the current automated browser test; the MediaPipe version-specific metrics question is unresolved |
+| External runtime traffic | No external HTTP request was observed in the automated browser test; the reviewed 0.10.21 runtime contains no known MediaPipe outbound-traffic indicators, and the build rejects version changes or known indicators |
+| Pricing at initial release | Free, with no advertising or in-extension purchases. Any future monetization requires a new implementation and updated Store disclosures before release |
 
-## 1. Title candidates
+## 1. Final title
 
-The store title comes from the manifest `name` field. The current value is `Potato Meet`; changing or localizing it requires a source and manifest change outside this document-only task.
+The selected store title is **Potato Meet**, which matches the current manifest `name`. The operator selected this name on 2026-09-03. Complete the remaining trademark review before submission and keep the non-affiliation statement in the listing and support site.
 
-| Locale | Candidate | Recommendation and trademark note |
+| Locale | Store title | Status and trademark note |
 |---|---|---|
-| English | **Potato Overlay for Google Meet™** | Recommended format because it describes compatibility and keeps the extension's own name separate from the Google product name. Requires a manifest change |
-| English | Potato Meet | Matches the current manifest, but “Meet” may be understood as part of Google's mark. Obtain a trademark review before using it as the final product name |
-| Japanese | **Google Meet™用ポテトオーバーレイ** | Recommended Japanese compatibility description. Requires manifest localization and a source change |
-| Japanese | Potato Meet（ポテトミート） | Easy to recognize, but has the same trademark concern as the current English name |
+| English | Potato Meet | Selected; matches the manifest. “Meet” may be understood as part of Google's mark, so retain the trademark-review gate |
+| Japanese | Potato Meet | Use the same manifest title; the Japanese description may add the reading `ポテトミート` and must retain the non-affiliation statement |
 
 Do not use a Google Meet logo or a modified Google product icon as the extension icon. Google's current guidance permits accurate plain-text references but says not to imply affiliation, endorsement, or sponsorship and not to incorporate Google trademarks into a product name. The Google Workspace branding guide gives “for [Google product]” as the safer compatibility form.
 
@@ -57,7 +56,7 @@ The current manifest description is also within the 132-character limit, but cha
 ### English
 
 ```text
-Potato Overlay for Google Meet™ adds animated potato images over the faces of other participants visible in your Google Meet call.
+Potato Meet adds animated potato images over the faces of other participants visible in your Google Meet call.
 
 Open the extension popup in a Google Meet tab and turn on “Show potatoes.” The extension detects visible camera faces, follows face position and direction, and reacts to mouth movement. You can choose from three potato styles and add sunglasses. The effect appears only in your browser. It does not alter the camera video you send or what other participants see.
 
@@ -71,10 +70,10 @@ Privacy by design
 
 The extension reads limited Google Meet tile text and attributes only to exclude your own video and screen shares. This information is processed locally and is not persistently stored.
 
-Potato Overlay for Google Meet is a visual effect, not an anonymization, identity-verification, or facial-recognition tool. Face detection can be affected by lighting, face size, occlusion, camera angle, and changes to the Google Meet interface.
+Potato Meet is a visual effect, not an anonymization, identity-verification, or facial-recognition tool. Face detection can be affected by lighting, face size, occlusion, camera angle, and changes to the Google Meet interface.
 
-Support: [SUPPORT URL OR EMAIL]
-Privacy policy: [PUBLIC PRIVACY POLICY URL]
+Support: https://koki-tanaka49.github.io/potato-meet/
+Privacy policy: https://koki-tanaka49.github.io/potato-meet/privacy-policy.html
 
 Google Meet™ is a trademark of Google LLC. This extension is an independent product and is not affiliated with, endorsed by, or sponsored by Google LLC.
 ```
@@ -82,7 +81,7 @@ Google Meet™ is a trademark of Google LLC. This extension is an independent pr
 ### Japanese
 
 ```text
-Google Meet™用ポテトオーバーレイは、Google Meetで表示中の相手参加者の顔に、動きに追従するポテト画像を重ねるChrome拡張機能です。
+Potato Meet（ポテトミート）は、Google Meetで表示中の相手参加者の顔に、動きに追従するポテト画像を重ねるChrome拡張機能です。
 
 Google Meetのタブで拡張機能のポップアップを開き、「Show potatoes」をONにすると使えます。表示中のカメラ映像から顔の位置と向きを推定し、口の動きにも反応します。3種類のポテトとサングラスを選べます。表示は自分のブラウザ内だけで行われ、相手へ送るカメラ映像や他の参加者が見る画面は変わりません。
 
@@ -98,8 +97,8 @@ Google Meetのタブで拡張機能のポップアップを開き、「Show pota
 
 本拡張機能は見た目を変えるための機能であり、匿名化、本人確認、顔認識を目的としません。照明、顔の大きさ、遮蔽、カメラ角度、Google Meetの画面仕様変更により、顔を検出できない場合があります。
 
-サポート: [SUPPORT URL OR EMAIL]
-プライバシーポリシー: [PUBLIC PRIVACY POLICY URL]
+サポート: https://koki-tanaka49.github.io/potato-meet/
+プライバシーポリシー: https://koki-tanaka49.github.io/potato-meet/privacy-policy.html
 
 Google Meet™はGoogle LLCの商標です。本拡張機能は独立した製品であり、Google LLCとの提携、承認、後援関係はありません。
 ```
@@ -183,13 +182,13 @@ Derived face position, direction, and mouth state should be described in the pri
 
 ### Limited Use certifications
 
-The final answers must match the final package and published privacy policy. For the current intended design, the operator should be able to certify that data is used only for the disclosed single purpose, is not used for personalized advertising, is not sold, and is not read by humans. **Do not submit these certifications yet:** the version-specific MediaPipe metrics transfer remains unresolved.
+The final answers must match the final package and published privacy policy. For the reviewed 0.10.21 release, the operator can certify that data is used only for the disclosed single purpose, is not transferred externally by Potato Meet, is not used for personalized advertising, is not sold, and is not read by the operator. Complete the Dashboard certifications only after verifying the published policy and the exact uploaded ZIP.
 
-After resolving that question, use one of these paths:
+If later technical evidence changes, use the applicable path:
 
 | Final finding | Required Dashboard action |
 |---|---|
-| Confirmed no MediaPipe metrics or other external user-data transfer in the final package | Certify no transfer and keep the local-processing disclosures above |
+| No MediaPipe metrics or other external user-data transfer in the final package (current reviewed state) | Certify no transfer and keep the local-processing disclosures above |
 | Metrics are sent or cannot reasonably be ruled out | Disclose the exact metrics and Google as recipient, make the privacy policy and in-product notice consistent, obtain any required informed consent, and confirm the transfer fits Chrome Web Store Limited Use before certifying |
 
 Required public Limited Use statement, already included in `privacy-policy.md`:
@@ -205,13 +204,13 @@ Chrome's official FAQ explicitly says local processing must be disclosed: [Chrom
 ### English
 
 ```text
-Need help or found a problem? Contact [SUPPORT EMAIL] or visit [SUPPORT URL]. Please include the Potato Meet version, Chrome version, operating system, and steps to reproduce. Do not send meeting recordings, participant images, meeting links, passwords, or other private meeting content.
+Need help or found a problem? Contact koki.tanaka.workwork@gmail.com or visit https://koki-tanaka49.github.io/potato-meet/. Please include the Potato Meet version, Chrome version, operating system, and steps to reproduce. Do not send meeting recordings, participant images, meeting links, passwords, or other private meeting content.
 ```
 
 ### Japanese
 
 ```text
-使い方の質問や不具合は、[SUPPORT EMAIL]または[SUPPORT URL]へお知らせください。Potato Meetのバージョン、Chromeのバージョン、OS、再現手順を記載してください。会議録画、参加者の画像、会議リンク、パスワード、その他の非公開の会議内容は送らないでください。
+使い方の質問や不具合は、koki.tanaka.workwork@gmail.com または https://koki-tanaka49.github.io/potato-meet/ へお知らせください。Potato Meetのバージョン、Chromeのバージョン、OS、再現手順を記載してください。会議録画、参加者の画像、会議リンク、パスワード、その他の非公開の会議内容は送らないでください。
 ```
 
 ## 8. Trademark attribution
@@ -248,15 +247,16 @@ Privacy notes for review:
 • No operator account, analytics service, advertising, remote logging, or operator-controlled server is used.
 ```
 
-## 10. Listing asset warning
+## 10. Listing assets
 
-The repository's current screenshots are not ready for upload:
+The upload-ready assets are generated under `docs/store-assets`:
 
-- `docs/images/potato-meet-browser.png` is 1280×720, not the required 1280×800 or 640×400.
-- `docs/images/potato-meet-popup.png` is 360×640, not a valid store screenshot size.
-- No 128×128 store icon or 440×280 small promotional tile is currently present.
+- `potato-meet-screenshot-1280x800.png`: required store screenshot size
+- `potato-meet-promo-440x280.png`: required small promotional tile size
+- `potato-meet-marquee-1400x560.png`: optional marquee tile size
+- `public/icons/icon-128.png`: store icon with the required transparent margin
 
-Use the exact asset requirements in [Chrome Web Store image guidance](https://developer.chrome.com/docs/webstore/images) and the checklist in [publishing-checklist.md](./publishing-checklist.md).
+Run `node scripts/generate-store-assets.mjs` and `node scripts/verify-store-assets.mjs` after changing the icon or browser-test screenshot. Visually inspect the generated files before uploading them. See [Chrome Web Store image guidance](https://developer.chrome.com/docs/webstore/images) and [publishing-checklist.md](./publishing-checklist.md).
 
 ## Official Chrome Web Store sources
 

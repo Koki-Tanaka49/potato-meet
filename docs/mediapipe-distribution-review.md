@@ -1,17 +1,16 @@
 # MediaPipe distribution and privacy review
 
-Updated: 2026-09-01
+Updated: 2026-09-04
 
 This is an evidence log and release decision aid for Potato Meet. It is not legal advice. “Verified” below means verified from the listed technical or official source; it does not replace advice from a qualified rights or privacy professional.
 
 ## Decision
 
-**Do not distribute the Chrome Web Store ZIP yet.** Two release gates remain open:
+**Conditional GO for the pinned MediaPipe release.** Under the operator's practical release standard—official licensing evidence plus a currently published comparable Chrome extension—the MediaPipe SDK, WebAssembly, and pinned Face Landmarker model are cleared for submission.
 
-1. The official materials found do not expressly attach redistribution terms to the exact standalone object `face_landmarker.task` downloaded from the project URL.
-2. Google's 2026 MediaPipe notices say Tasks APIs send performance and utilization metrics, while the project's Web 0.10.21 test currently observes no external HTTP requests. The exact behavior and resulting disclosure or consent duty for this package version are not confirmed.
+The exact npm package and official v0.10.21 source tag use Apache 2.0, and the release ZIP carries the license, applicable notices, and the loader modification notice. All three model components identified inside the task bundle have official Google model cards stating Apache 2.0. The pinned model's SHA-256 also exactly matches the model bundled in the currently published Chrome Web Store extension Gaze Guard. A second published extension uses bundled MediaPipe face tracking directly on Google Meet.
 
-The SDK and WebAssembly redistribution evidence is substantially stronger: the exact npm package declares Apache-2.0, the official v0.10.21 repository tag carries Apache License 2.0, and the distribution package already includes the license and applicable notice files. The model bundle needs separate confirmation because an Apache-licensed repository, sample, or model card does not automatically prove the license of a separately hosted binary object.
+Google's current general MediaPipe terms describe performance and utilization metrics, but do not identify Web 0.10.21. For the pinned release, automated runtime testing observed no external HTTP traffic, static review found no known MediaPipe telemetry endpoint or API-key header, and the build rejects MediaPipe version changes or known outbound-traffic indicators. This is a documented risk-based release decision, not a guarantee about every environment or future MediaPipe version.
 
 ## 1. Items in the release package
 
@@ -55,13 +54,16 @@ No license or notice file was present inside that archive.
 | Does Apache 2.0 permit object-form redistribution? | **Verified as license text** | Section 4 of the official tag license permits redistribution subject to conditions including providing the license, marking modifications, retaining notices, and carrying NOTICE attributions when applicable | Applying those conditions to a particular artifact is a rights decision, not just a technical check |
 | Are SDK/WASM license materials included in the ZIP? | **Verified** | `scripts/build.mjs` copies Apache 2.0 and `mediapipe-notice.txt`; current `dist` contains both | Re-check the final ZIP after every dependency update |
 | Is the model downloaded from an official Google-hosted URL? | **Verified** | The URL is used by the project and by Google's official MediaPipe sample; the current object matches the pinned SHA-256 | An official download location and sample usage do not by themselves grant redistribution rights |
-| Does the exact model object state its redistribution terms? | **Not verified** | HTTP response headers contain object metadata but no license field; the `.task` archive contains model files and metadata but no license or notice | This is the main redistribution blocker |
-| Do component model cards state Apache 2.0? | **Verified, indirect** | Official model cards for BlazeFace Short Range, Face Mesh V2, and Blendshape V2 each state Apache License 2.0 | The cards do not expressly identify the hash of the exact `.task` object or state that the combined object may be redistributed |
+| Does the exact model object state its redistribution terms? | **Not expressly stated on the object** | HTTP response headers and the `.task` archive contain no license file | Residual documentation gap accepted under the practical release standard described above |
+| Do component model cards state Apache 2.0? | **Verified** | Official model cards for BlazeFace Short Range, Face Mesh V2, and Blendshape V2 each state Apache License 2.0 | The cards do not expressly identify the combined object's hash |
+| Is there a published same-model precedent? | **Verified** | Gaze Guard is currently available in the Chrome Web Store, states that it bundles Face Landmarker and WASM, and its repository's model SHA-256 exactly matches Potato Meet's pinned hash | Store publication is practical precedent, not a legal opinion from Google |
+| Is there a published Google Meet precedent? | **Verified** | Simple Makeup Filter for Google Meet is currently available and states that it bundles Google MediaPipe for local 468-point face tracking | Its exact dependency version was not established |
 | Are input video frames sent to Google according to current official notice? | **Official notice says no** | The MediaPipe Tasks Privacy Notice says input images and video are processed on-device and not sent to Google servers | The notice is general and newer than Web 0.10.21 |
 | Are performance or utilization metrics sent according to current official notice? | **Official notice says yes** | The same notice says Tasks APIs send performance and utilization metrics to Google | It does not identify which package versions, platforms, endpoints, triggers, or opt-out behavior are covered |
 | Does the broader current MediaPipe terms page describe additional contact and metrics? | **Verified** | The MediaPipe APIs Terms say APIs may contact Google for bug fixes, model updates, and accelerator information and list example usage-data categories | The page uses “MediaPipe Solution APIs” broadly and is not a technical specification for Web 0.10.21 |
 | Did the current browser test observe external HTTP traffic? | **Verified for the covered test** | `tests/extension.browser.spec.ts` records HTTP(S) requests other than the mocked Meet page and expects an empty array | One mocked flow cannot rule out delayed, conditional, platform-specific, or future traffic |
-| Does static review show a configured telemetry destination? | **Not found, not proof of absence** | The 0.10.21 JavaScript contains `fetch` for caller-provided model and graph paths; the Emscripten loader contains fetch/XHR for the caller-provided WebAssembly path. No `sendBeacon`, WebSocket, or hard-coded telemetry endpoint was found in the reviewed JavaScript | WebAssembly strings contain generic metric-related symbols and bundled libraries are complex; static string review cannot prove runtime behavior |
+| Does static review show a configured telemetry destination? | **No known destination found** | The 0.10.21 JavaScript contains `fetch` for caller-provided model and graph paths; the Emscripten loader contains fetch/XHR for the caller-provided WebAssembly path. No `sendBeacon`, WebSocket, known MediaPipe telemetry endpoint, or API-key header was found | Static review cannot prove absence under every runtime condition |
+| Does the build preserve this reviewed state? | **Verified** | `scripts/check-mediapipe-runtime.mjs` requires version 0.10.21 and Apache-2.0 and fails when known outbound indicators are found in distributed JS or WASM | Re-review and update the check when intentionally changing MediaPipe |
 
 ## 3. SDK and WebAssembly redistribution analysis
 
@@ -73,11 +75,11 @@ No license or notice file was present inside that archive.
 - The build includes an Apache 2.0 license file and the notice currently identified for the WebAssembly distribution.
 - The project modifies the copied WebAssembly loader by appending two global assignments so the content script and Worker can share the bundled module factory. This modification should remain documented because Apache 2.0 section 4 requires prominent notices for modified files.
 
-### Required before release
+### Release controls
 
-- Add a clear modification note to the final third-party notices for `vision_wasm_internal.js`, or obtain a rights review confirming the existing notice is sufficient. The current source comment documents the technical reason but the distributed notice does not expressly identify the modified file.
 - Re-create and inspect notices whenever `@mediapipe/tasks-vision` changes. Do not assume the 0.10.21 notice remains sufficient for another version.
 - Keep the license and notice files accessible inside the final ZIP.
+- Keep the distributed modification notice for `vision_wasm_internal.js`.
 
 ### Practical status
 
@@ -99,7 +101,7 @@ Official model sources:
 - [Face Mesh V2 model card](https://storage.googleapis.com/mediapipe-assets/Model%20Card%20MediaPipe%20Face%20Mesh%20V2.pdf)
 - [Blendshape V2 model card](https://storage.googleapis.com/mediapipe-assets/Model%20Card%20Blendshape%20V2.pdf)
 
-### Why this is not enough
+### Residual documentation limit
 
 - The exact GCS object is separate from the MediaPipe source repository.
 - Its HTTP headers do not state a license.
@@ -107,21 +109,9 @@ Official model sources:
 - The model cards do not bind their terms to this object's exact URL, generation, SHA-256, or combined archive.
 - Apache licensing of sample source code that references a URL does not automatically license the downloaded binary.
 
-### Safe confirmation evidence
+### Practical release decision
 
-Obtain at least one of the following before distributing the model in a Chrome Web Store ZIP:
-
-1. An official Google or MediaPipe page that explicitly states the redistribution license for the exact Face Landmarker task bundle or URL.
-2. A license file or metadata published with the exact object and clearly applicable to the pinned hash or version.
-3. Written confirmation from an authorized Google or MediaPipe contact that the exact object may be redistributed in a Chrome extension, including any notice requirements.
-
-Record the URL, date, exact wording, responder identity where applicable, and the model SHA-256 with the release evidence.
-
-### Alternatives if confirmation cannot be obtained
-
-- Replace the model with one whose redistribution terms are explicit and compatible, then re-run quality, privacy, and package review.
-- Ask users to provide a model they are authorized to use, if that can be made understandable and reliable; this would materially change the product.
-- Evaluate runtime download of the official model as data rather than bundling it. Do **not** treat this as an automatic workaround: it changes network behavior, offline behavior, privacy disclosure, consent analysis, Content Security Policy and cross-origin requirements, review evidence, and supply-chain risk. It requires a separate design and Chrome Web Store review.
+The operator accepts the remaining documentation gap because the exact bundle's three model components have official Apache 2.0 model cards, Google publishes and demonstrates the same task URL, and a currently published Chrome Web Store extension distributes the exact same hash with Apache 2.0 attribution. Keep the pinned hash and notices unchanged. If the model changes, repeat the full rights and precedent review rather than carrying this decision forward automatically.
 
 ## 5. MediaPipe metrics and runtime network analysis
 
@@ -147,34 +137,34 @@ The [MediaPipe APIs Terms of Service](https://developers.google.com/edge/mediapi
 - The current Playwright test records external HTTP(S) requests during its covered flow and expects zero.
 - Static JavaScript review found only resource-loading fetch/XHR paths for URLs supplied by the caller or Emscripten loader. It found no `sendBeacon`, WebSocket, or hard-coded telemetry service URL.
 - WebAssembly contains generic strings mentioning metrics and analytics types. These may come from linked protocol definitions and are not evidence that a network request occurs.
+- The production build checks the installed MediaPipe version and license and scans the distributed runtime for the known `odml.pa.googleapis.com` endpoint and `x-goog-api-key` header.
 
-### What remains unknown
+### Residual uncertainty
 
 - Whether the 2026 notice describes Web package 0.10.21, only newer releases, other platforms, or all of them.
 - Whether metrics depend on environment, time, feature, error state, origin, network availability, or a Google service configuration.
 - Whether there is an opt-out or build flag for Web 0.10.21.
 - The exact fields, endpoint, identifier behavior, and retention period for any Web 0.10.21 metrics.
 
-### Required verification plan
+### Ongoing safeguards
 
-1. Ask MediaPipe maintainers or an authorized Google contact for a version- and platform-specific answer covering `@mediapipe/tasks-vision@0.10.21` on Web.
-2. Run the final packaged extension, not only the source build, in clean Chrome profiles on all supported operating systems.
-3. Test initial setup, repeated inference, idle periods, errors, offline-to-online transition, tab backgrounding, and a long session.
-4. Observe browser network events and, where permitted, system-level connections. Preserve timestamps, hostnames, request methods, and response status without recording participant content.
-5. Repeat after Chrome and dependency updates.
-6. If any external request occurs, determine its payload and purpose without sending real participant data. Update the privacy policy, Dashboard, in-product notice, consent flow, and test evidence before submission.
+1. Keep `@mediapipe/tasks-vision` pinned to 0.10.21 for this release.
+2. Fail the build if the installed version changes or known MediaPipe outbound-traffic indicators appear.
+3. Run the final packaged extension in a real two-participant Meet session, including a 15-minute observation.
+4. Repeat the network, terms, license, and notice review after any dependency or model update.
+5. If any external request occurs, determine its payload and purpose without sending real participant data. Update the privacy policy, Dashboard, in-product notice, consent flow, and test evidence before submission.
 
-A packet test can establish what was observed in the tested conditions; it cannot prove that no other condition will ever send data. Pair testing with authoritative version-specific documentation or written confirmation.
+A packet test can establish only what was observed in the tested conditions; it cannot prove that no other condition will ever send data. This limitation is recorded and accepted for the pinned release. Any dependency, model, or observed-network change reopens the review.
 
 ## 6. Chrome Web Store effect
 
 | Topic | Current answer | Release implication |
 |---|---|---|
 | Remote hosted code | No. JavaScript and WebAssembly are bundled | Select “No, I am not using remote code” after final ZIP inspection |
-| Model | Bundled data, not executable JavaScript or WebAssembly | Still needs redistribution rights; model status does not change the remote-code answer |
+| Model | Bundled data, not executable JavaScript or WebAssembly | Redistribution was accepted under the documented practical standard; model status does not change the remote-code answer |
 | Local input processing | Video and facial estimates are processed locally and not persisted | Must still be disclosed as Personal communications and Website content; local handling is not exempt |
 | Meet labels and names | Limited tile text and attributes can include participant names and are scanned locally | Conservatively disclose Personally identifiable information and explain the narrow purpose |
-| MediaPipe metrics | Unresolved for Web 0.10.21 | Do not complete Limited Use certifications or submit until transfer, recipient, consent, and disclosure are settled |
+| MediaPipe metrics | No external request observed and no known outbound indicator found in pinned Web 0.10.21 | Disclose actual local processing; re-open metrics, recipient, and consent review if the version changes or traffic is observed |
 
 Chrome sources:
 
@@ -187,10 +177,10 @@ Chrome sources:
 
 | Path | Conditions | Recommendation |
 |---|---|---|
-| A. Bundle current SDK/WASM/model | Exact model redistribution rights confirmed; Web 0.10.21 metrics behavior and consent resolved; final notices complete | Preferred if all evidence is obtained because it preserves local resource loading and offline behavior |
+| A. Bundle current SDK/WASM/model | Keep version and model hash pinned; include notices; pass automated and real-Meet checks | **Selected** because official licensing evidence, exact-model precedent, and release controls support the practical release standard |
 | B. Bundle SDK/WASM but replace model | Replacement model has explicit compatible redistribution terms and passes quality, privacy, and performance tests | Acceptable engineering alternative; requires a new technical and rights review |
 | C. Download model at runtime | Separate design confirms model access terms, CWS treatment, CORS/CSP, integrity pinning, privacy, consent, and failure behavior | Not a documentation-only shortcut; use only after a dedicated implementation review |
-| D. Submit now with uncertainty | One or both release gates unresolved | **Not recommended** |
+| D. Upgrade MediaPipe without re-review | Version, traffic, or model changes are not reviewed | **Not permitted by the build and release process** |
 
 ## 8. Evidence to retain with the release
 
@@ -198,8 +188,8 @@ Chrome sources:
 - Official v0.10.21 release and license snapshots or archived URLs
 - Final SDK/WASM license and notice files
 - Exact model URL, GCS generation if available, size, and SHA-256
-- Explicit model redistribution evidence or written confirmation
-- MediaPipe version-specific metrics confirmation
+- Exact-model Chrome Web Store precedent and hash comparison
+- MediaPipe version pin and outbound-indicator check result
 - Final ZIP file list and SHA-256
 - Automated and manual test results, including network-observation scope and limitations
 - Published privacy-policy version and Dashboard disclosure export or screenshots
@@ -217,3 +207,6 @@ Chrome sources:
 - [BlazeFace Short Range model card](https://storage.googleapis.com/mediapipe-assets/MediaPipe%20BlazeFace%20Model%20Card%20%28Short%20Range%29.pdf)
 - [Face Mesh V2 model card](https://storage.googleapis.com/mediapipe-assets/Model%20Card%20MediaPipe%20Face%20Mesh%20V2.pdf)
 - [Blendshape V2 model card](https://storage.googleapis.com/mediapipe-assets/Model%20Card%20Blendshape%20V2.pdf)
+- [Gaze Guard Chrome Web Store listing](https://chromewebstore.google.com/detail/fomblcbdekidgallgkdkpkndoneajkbf)
+- [Gaze Guard model and notices](https://github.com/steepinglogic/gaze-guard)
+- [Simple Makeup Filter for Google Meet](https://chromewebstore.google.com/detail/jffebejmbaaolmjpokllkkhbepgohmnn)

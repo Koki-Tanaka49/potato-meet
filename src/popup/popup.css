@@ -372,11 +372,14 @@ h1 {
 }
 
 .privacy-note {
-  margin: 10px 4px 0;
-  color: var(--muted);
-  font-size: 10px;
+  margin: 10px 0;
+  padding: 9px 11px;
+  border: 1px solid #ecd7ae;
+  border-radius: 12px;
+  background: #fff8e9;
+  color: var(--ink);
+  font-size: 11px;
   line-height: 1.45;
-  text-align: center;
 }
 
 .connection-notice {

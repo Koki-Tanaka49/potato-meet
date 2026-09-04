@@ -13,6 +13,7 @@
     "build": "node scripts/build.mjs",
     "package": "npm run build && node scripts/package.mjs",
     "release:check": "npm run package && node scripts/package.mjs --check",
+    "check:mediapipe": "node scripts/check-mediapipe-runtime.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",

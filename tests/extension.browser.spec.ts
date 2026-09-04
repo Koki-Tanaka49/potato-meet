@@ -193,7 +193,7 @@ test("模擬Meetで相手だけに表示し、ON/OFFを繰り返せる", async (
     await expect(popup.locator("#preview-sunglasses")).toBeVisible();
     await expect(popup.locator("#selection-summary")).toHaveText("Sweet potato + sunglasses");
     await expect(popup.getByText(
-      "Video and face estimates are processed on this device and are not saved.",
+      "Before you turn it on: Potato Meet processes visible Meet video, face estimates, and participant tile text on this device to place potatoes. It does not save or upload them.",
       { exact: true }
     )).toBeVisible();
     await expect(popup.locator("#connection-notice")).toBeVisible();

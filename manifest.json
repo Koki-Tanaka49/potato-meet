@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Potato Meet",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "Cover other participants' faces in Google Meet with animated potatoes, processed entirely in your browser.",
   "icons": {
     "16": "icons/icon-16.png",
@@ -33,6 +33,8 @@
   "web_accessible_resources": [
     {
       "resources": [
+        "face-tracker-host.html",
+        "face-tracker-host.js",
         "face-tracker-worker.js",
         "mediapipe/wasm/*",
         "models/face_landmarker.task",

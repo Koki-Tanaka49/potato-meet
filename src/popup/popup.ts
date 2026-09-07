@@ -33,6 +33,8 @@ const previewBody: HTMLImageElement = previewBodyElement;
 const previewSunglasses: HTMLImageElement = previewSunglassesElement;
 const selectionSummary: HTMLElement = selectionSummaryElement;
 const connectionNotice: HTMLElement = connectionNoticeElement;
+const trackingStatus = document.querySelector<HTMLElement>("#tracking-status")!;
+let changingEnabled = false;
 let storedSunglassesEnabled = false;
 let selectedVariant: PotatoVariant = "classic";
 
@@ -85,14 +87,27 @@ function render(response: ExtensionStateResponse | null): void {
   sunglassesToggle.checked = storedSunglassesEnabled;
   sunglassesState.textContent = sunglassesToggle.checked ? "On" : "Off";
 
+  trackingStatus.hidden = !response?.enabled && !response?.detectorError;
+  trackingStatus.textContent = response?.detectorError
+    ? `Face tracking failed: ${response.detectorError} Turn potatoes off and on to retry.`
+    : !response?.detectorReady
+      ? "Starting face tracking…"
+      : response.trackedCount === 0
+        ? "No other participants’ videos found. Your own video is excluded."
+        : `Checking ${response.trackedCount} video(s) for faces. Potatoes appear after a face is detected.`;
   if (response) selectVariant(response.variant);
   updatePreview();
 }
 
 toggle.addEventListener("change", async () => {
+  changingEnabled = true;
   toggle.disabled = true;
-  const response = await send({ type: "POTATO_SET_ENABLED", enabled: toggle.checked });
-  render(response);
+  try {
+    const response = await send({ type: "POTATO_SET_ENABLED", enabled: toggle.checked });
+    render(response);
+  } finally {
+    changingEnabled = false;
+  }
 });
 
 for (const input of variantElements) {
@@ -138,3 +153,10 @@ void (async () => {
   if (typeof stored.sunglassesEnabled === "boolean") storedSunglassesEnabled = stored.sunglassesEnabled;
   render(await send({ type: "POTATO_GET_STATE" }));
 })();
+
+// Initialization completes after the toggle response; keep the open popup current.
+window.setInterval(async () => {
+  if (changingEnabled) return;
+  const response = await send({ type: "POTATO_GET_STATE" });
+  if (!changingEnabled) render(response);
+}, 1_000);

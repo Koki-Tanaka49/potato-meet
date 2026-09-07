@@ -32,6 +32,12 @@ On the first build, the project downloads the face-detection model from MediaPip
 
 Potato Meet always starts turned off in each new Google Meet tab.
 
+## Updating and troubleshooting
+
+After rebuilding, reload Potato Meet in `chrome://extensions`, then reload the Meet tab and turn **Show potatoes** on again. A running tab keeps the old content script until it is reloaded. For a store installation, the new version must first be published and installed; rebuilding this repository does not update it.
+
+Version 0.3.3 starts face tracking in an extension-owned frame and worker so that the Meet page's WebAssembly restrictions do not prevent initialization. The popup reports initialization, missing participant videos, and startup errors. The extension still excludes your own video.
+
 ## Development and testing
 
 | Command | Purpose |
@@ -41,7 +47,7 @@ Potato Meet always starts turned off in each new Google Meet tab.
 | `npm run model` | Download and verify the face-detection model |
 | `npm run assets -- <image-path>` | Prepare potato image assets |
 
-Head direction, mouth movement, and long-running behavior are verified manually in a real Google Meet call. The browser test uses an AI-generated person who does not represent a real individual.
+Head direction, mouth movement, and long-running behavior are verified manually in a real Google Meet call. The browser tests cover both an unrestricted page and a page CSP that forbids WebAssembly. They use an AI-generated person who does not represent a real individual. Test screenshots are written to `test-results`, leaving published screenshots unchanged.
 
 ## Project structure
 

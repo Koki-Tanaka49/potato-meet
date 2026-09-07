@@ -101,7 +101,8 @@ class PotatoMeetController {
       this.renderer = await PotatoRenderer.create(this.variant, this.sunglassesEnabled);
     } catch {
       this.enabled = false;
-      throw new Error("Could not load the potato assets.");
+      this.detectorError = "Could not load the potato assets. Reload the Meet tab after updating the extension.";
+      throw new Error(this.detectorError);
     }
     if (!this.enabled || generation !== this.generation) {
       this.renderer.destroy();

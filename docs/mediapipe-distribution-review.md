@@ -17,7 +17,7 @@ Google's current general MediaPipe terms describe performance and utilization me
 | Item | Exact project input | How it enters `dist` |
 |---|---|---|
 | MediaPipe JavaScript | `@mediapipe/tasks-vision@0.10.21` | esbuild bundles imported code into `dist/face-tracker-worker.js` |
-| MediaPipe WebAssembly loader and binaries | `node_modules/@mediapipe/tasks-vision/wasm/*` | `scripts/build.mjs` copies the directory to `dist/mediapipe/wasm` |
+| MediaPipe WebAssembly loader and binaries | `node_modules/@mediapipe/tasks-vision/wasm/*` | `scripts/build.mjs` copies only the explicitly used `vision_wasm_internal.js` and `.wasm` to `dist/mediapipe/wasm`; the unused nosimd pair is omitted in 0.3.5 |
 | Face Landmarker model bundle | `public/models/face_landmarker.task` | `scripts/fetch-model.mjs` downloads a pinned object if absent, verifies SHA-256, and the build copies it to `dist/models` |
 | License and notice files | `licenses/apache-2.0.txt`, `licenses/mediapipe-notice.txt`, `docs/third-party.md` | The build copies all three into `dist` |
 

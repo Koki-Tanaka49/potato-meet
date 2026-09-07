@@ -42,23 +42,22 @@ function hasTruthyMarker(element: HTMLElement, names: string[]): boolean {
   });
 }
 
-function isSelfTile(tile: HTMLElement, video: HTMLVideoElement): boolean {
+function isSelfTile(tile: HTMLElement, text: string): boolean {
   if (hasTruthyMarker(tile, ["data-is-self", "data-self", "data-local-participant"])) return true;
   if (tile.querySelector("[data-is-self='true'], [data-self='true'], [data-local-participant='true']")) return true;
-  return SELF_PATTERN.test(textFor(tile, video));
+  return SELF_PATTERN.test(text);
 }
 
-function isScreenShare(tile: HTMLElement, video: HTMLVideoElement): boolean {
+function isScreenShare(tile: HTMLElement, video: HTMLVideoElement, text: string): boolean {
   if (hasTruthyMarker(tile, ["data-screen-share", "data-is-presentation", "data-presentation-id"])) return true;
   if (tile.querySelector("[data-screen-share='true'], [data-is-presentation='true'], [data-presentation-id]")) return true;
   const trackLabel = video.srcObject instanceof MediaStream
     ? video.srcObject.getVideoTracks()[0]?.label ?? ""
     : "";
-  return SHARE_PATTERN.test(`${textFor(tile, video)} ${trackLabel}`);
+  return SHARE_PATTERN.test(`${text} ${trackLabel}`);
 }
 
-function isVisibleVideo(video: HTMLVideoElement, style: CSSStyleDeclaration): boolean {
-  const rect = rectFromDomRect(video.getBoundingClientRect());
+function isVisibleVideo(rect: Rect, style: CSSStyleDeclaration): boolean {
   return style.display !== "none" && style.visibility !== "hidden" && style.opacity !== "0" && isRenderableRect(rect);
 }
 
@@ -75,10 +74,13 @@ export function findMeetCandidates(root: ParentNode = document): MeetVideoCandid
   for (const video of root.querySelectorAll("video")) {
     if (!(video instanceof HTMLVideoElement)) continue;
     const style = getComputedStyle(video);
-    if (!isVisibleVideo(video, style)) continue;
+    const videoRect = rectFromDomRect(video.getBoundingClientRect());
+    if (!isVisibleVideo(videoRect, style)) continue;
     if (video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA || video.videoWidth <= 0 || video.videoHeight <= 0) continue;
     const tile = video.closest<HTMLElement>(TILE_SELECTOR);
-    if (!tile || isSelfTile(tile, video) || isScreenShare(tile, video)) continue;
+    if (!tile) continue;
+    const text = textFor(tile, video);
+    if (isSelfTile(tile, text) || isScreenShare(tile, video, text)) continue;
     const tileRect = rectFromDomRect(tile.getBoundingClientRect());
     if (!isRenderableRect(tileRect)) continue;
 
@@ -86,7 +88,7 @@ export function findMeetCandidates(root: ParentNode = document): MeetVideoCandid
       video,
       tile,
       tileRect,
-      videoRect: rectFromDomRect(video.getBoundingClientRect()),
+      videoRect,
       objectFit: style.objectFit || "cover",
       mirrored: isMirrored(style)
     };
@@ -96,8 +98,8 @@ export function findMeetCandidates(root: ParentNode = document): MeetVideoCandid
     }
   }
 
-  return [...byTile.values()]
-    .sort((a, b) => b.tileRect.width * b.tileRect.height - a.tileRect.width * a.tileRect.height);
+  // The controller caches size priority and updates it only when candidates change.
+  return [...byTile.values()];
 }
 
 function rectChanged(previous: Rect, next: Rect): boolean {

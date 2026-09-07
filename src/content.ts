@@ -57,7 +57,9 @@ class PotatoMeetController {
   private detectionCursor = 0;
   private lastDetectionTimestamp = 0;
   private generation = 0;
-  private trackerLoadQueue: Promise<void> = Promise.resolve();
+  private trackerLoading: AbortController | null = null;
+  private detectionInFlight = false;
+  private detectionTargets: ParticipantState[] = [];
 
   getState(): ExtensionStateResponse {
     return {
@@ -97,21 +99,37 @@ class PotatoMeetController {
     this.enabled = true;
     this.detectorError = undefined;
     const generation = ++this.generation;
+    let renderer: PotatoRenderer;
     try {
-      this.renderer = await PotatoRenderer.create(this.variant, this.sunglassesEnabled);
+      renderer = await PotatoRenderer.create(this.variant, this.sunglassesEnabled);
     } catch {
+      if (!this.enabled || generation !== this.generation) return;
       this.enabled = false;
       this.detectorError = "Could not load the potato assets. Reload the Meet tab after updating the extension.";
       throw new Error(this.detectorError);
     }
     if (!this.enabled || generation !== this.generation) {
-      this.renderer.destroy();
-      this.renderer = null;
+      renderer.destroy();
       return;
     }
+    this.renderer = renderer;
+    renderer.setVariant(this.variant);
+    renderer.setSunglassesEnabled(this.sunglassesEnabled);
 
     this.scan();
-    this.mutationObserver = new MutationObserver(() => this.scheduleScan());
+    this.mutationObserver = new MutationObserver((records) => {
+      if (document.hidden) return;
+      // Chat text, captions and the overlay's own nodes cannot add/remove video.
+      // The periodic scan still refreshes labels and attributes for classification.
+      for (const record of records) {
+        for (const node of [...record.addedNodes, ...record.removedNodes]) {
+          if (node instanceof Element && (node.matches("video") || node.querySelector("video"))) {
+            this.scheduleScan();
+            return;
+          }
+        }
+      }
+    });
     this.mutationObserver.observe(document.documentElement, { childList: true, subtree: true });
     this.resizeObserver = new ResizeObserver(() => this.updateLayouts());
     for (const state of this.participants.values()) this.observeCandidate(state.candidate);
@@ -124,15 +142,19 @@ class PotatoMeetController {
     window.addEventListener("resize", this.handleWindowResize, { passive: true });
     document.addEventListener("visibilitychange", this.handleVisibilityChange);
     this.requestRender();
-    this.trackerLoadQueue = this.trackerLoadQueue
-      .catch(() => undefined)
-      .then(() => this.loadTracker(generation));
   }
 
-  private async loadTracker(generation: number): Promise<void> {
-    if (!this.enabled || generation !== this.generation) return;
+  private ensureTracker(): void {
+    if (!this.enabled || document.hidden || this.participants.size === 0 ||
+        this.tracker || this.trackerLoading || this.detectorError) return;
+    const loading = new AbortController();
+    this.trackerLoading = loading;
+    void this.loadTracker(this.generation, loading);
+  }
+
+  private async loadTracker(generation: number, loading: AbortController): Promise<void> {
     try {
-      const tracker = await FaceTracker.create();
+      const tracker = await FaceTracker.create(loading.signal);
       if (!this.enabled || generation !== this.generation) {
         tracker.close();
         return;
@@ -145,6 +167,8 @@ class PotatoMeetController {
       this.detectorReady = false;
       this.detectorError = error instanceof Error ? error.message : String(error);
       // カメラ映像だと確認できないため、顔検出を使えない場合は描画しない。
+    } finally {
+      if (this.trackerLoading === loading) this.trackerLoading = null;
     }
   }
 
@@ -169,6 +193,10 @@ class PotatoMeetController {
     this.animationFrame = null;
     window.removeEventListener("resize", this.handleWindowResize);
     document.removeEventListener("visibilitychange", this.handleVisibilityChange);
+    this.trackerLoading?.abort();
+    this.trackerLoading = null;
+    this.detectionInFlight = false;
+    this.detectionTargets = [];
     this.tracker?.close();
     this.tracker = null;
     this.renderer?.destroy();
@@ -186,6 +214,8 @@ class PotatoMeetController {
     if (document.hidden) {
       if (this.detectionTimer !== null) clearTimeout(this.detectionTimer);
       if (this.animationFrame !== null) cancelAnimationFrame(this.animationFrame);
+      if (this.scanDebounce !== null) clearTimeout(this.scanDebounce);
+      this.scanDebounce = null;
       this.detectionTimer = null;
       this.animationFrame = null;
       return;
@@ -197,7 +227,8 @@ class PotatoMeetController {
   };
 
   private scheduleScan(): void {
-    if (this.scanDebounce !== null) clearTimeout(this.scanDebounce);
+    // Coalesce mutation bursts without postponing discovery indefinitely.
+    if (!this.enabled || document.hidden || this.scanDebounce !== null) return;
     this.scanDebounce = window.setTimeout(() => {
       this.scanDebounce = null;
       this.scan();
@@ -205,7 +236,7 @@ class PotatoMeetController {
   }
 
   private scan(): void {
-    if (!this.enabled) return;
+    if (!this.enabled || document.hidden) return;
     const candidates = findMeetCandidates();
     const activeVideos = new Set(candidates.map((candidate) => candidate.video));
     let changed = false;
@@ -255,17 +286,34 @@ class PotatoMeetController {
         changed = true;
       }
     }
-    if (changed) this.requestRender();
+    if (changed) {
+      this.updateDetectionTargets();
+      this.requestRender();
+    }
+    this.ensureTracker();
+    if (this.detectionTimer === null) this.scheduleDetection(0);
+  }
+
+  private updateDetectionTargets(): void {
+    this.detectionTargets = [...this.participants.values()]
+      .sort((a, b) => b.candidate.tileRect.width * b.candidate.tileRect.height -
+        a.candidate.tileRect.width * a.candidate.tileRect.height)
+      .slice(0, performanceProfileFor(this.participants.size).maxTrackedFaces);
   }
 
   private updateLayouts(): void {
+    if (!this.enabled || document.hidden) return;
     let changed = false;
     for (const state of this.participants.values()) changed = updateCandidateLayout(state.candidate) || changed;
-    if (changed) this.requestRender();
+    if (changed) {
+      this.updateDetectionTargets();
+      this.requestRender();
+    }
   }
 
   private scheduleDetection(delay = 45): void {
-    if (!this.enabled || !this.tracker || document.hidden) return;
+    if (!this.enabled || !this.tracker || document.hidden || this.detectionInFlight ||
+        this.detectionTargets.length === 0) return;
     if (this.detectionTimer !== null) clearTimeout(this.detectionTimer);
     this.detectionTimer = window.setTimeout(() => {
       this.detectionTimer = null;
@@ -274,25 +322,28 @@ class PotatoMeetController {
   }
 
   private async detectNext(): Promise<void> {
-    if (!this.enabled || !this.tracker) return;
+    if (!this.enabled || !this.tracker || document.hidden || this.detectionInFlight) return;
+    const generation = this.generation;
+    this.detectionInFlight = true;
+    try {
+      await this.detectOne();
+    } finally {
+      if (generation === this.generation) {
+        this.detectionInFlight = false;
+        this.scheduleDetection(performanceProfileFor(this.participants.size).detectionDelay);
+      }
+    }
+  }
+
+  private async detectOne(): Promise<void> {
+    if (!this.tracker) return;
     const tracker = this.tracker;
     const generation = this.generation;
     const profile = performanceProfileFor(this.participants.size);
-    const states = [...this.participants.values()]
-      .sort((a, b) => {
-        const areaA = a.candidate.tileRect.width * a.candidate.tileRect.height;
-        const areaB = b.candidate.tileRect.width * b.candidate.tileRect.height;
-        return areaB - areaA;
-      })
-      .slice(0, profile.maxTrackedFaces);
-    if (states.length === 0) {
-      this.scheduleDetection(120);
-      return;
-    }
+    const states = this.detectionTargets;
     const state = states[this.detectionCursor % states.length];
     this.detectionCursor = (this.detectionCursor + 1) % Math.max(1, states.length);
     if (!state) {
-      this.scheduleDetection();
       return;
     }
 
@@ -300,7 +351,6 @@ class PotatoMeetController {
     if (videoFrame === state.lastVideoFrame) {
       // 同じ映像フレームを再解析せず、最後に確認できた顔はそのまま維持する。
       if (state.readable && state.observation) state.lastSeenAt = performance.now();
-      this.scheduleDetection(profile.detectionDelay);
       return;
     }
 
@@ -349,7 +399,6 @@ class PotatoMeetController {
       if (state.lastSeenAt > 0 && now - state.lastSeenAt > faceHoldMs) state.trackingConfirmed = false;
     }
     this.requestRender();
-    this.scheduleDetection(profile.detectionDelay);
   }
 
   private poses(now: number): OverlayPose[] {

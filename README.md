@@ -38,6 +38,8 @@ After rebuilding, reload Potato Meet in `chrome://extensions`, then open its pop
 
 Version 0.3.3 starts face tracking in an extension-owned frame and worker so that the Meet page's WebAssembly restrictions do not prevent initialization. The popup reports initialization, missing participant videos, and startup errors. The extension still excludes your own video.
 
+Version 0.3.5 defers face-tracker initialization until a visible participant video appears, avoids hidden-tab and unrelated text-change scans, and reuses the participant processing order until layout or membership changes. Detection resolution, timing, participant limits, and image assets remain the same. The unused nosimd WASM pair is no longer packaged; the runtime already explicitly selected the SIMD pair.
+
 ## Development and testing
 
 | Command | Purpose |

@@ -86,7 +86,17 @@ test(`模擬Meetで相手だけに表示し、ON/OFFを繰り返せる (${mode})
       });
       expect(await getMeetState(worker)).toMatchObject({ enabled: false });
     }
+    // Enabling before a camera is visible must not load MediaPipe yet.
+    await page.locator("[data-participant-id='remote-aki']").evaluate((tile) => {
+      (tile as HTMLElement).style.display = "none";
+    });
     await sendToMeet(worker, true);
+    await page.waitForTimeout(900);
+    expect(await getMeetState(worker)).toMatchObject({ detectorReady: false, trackedCount: 0 });
+    await expect(page.locator('iframe[src$="/face-tracker-host.html"]')).toHaveCount(0);
+    await page.locator("[data-participant-id='remote-aki']").evaluate((tile) => {
+      (tile as HTMLElement).style.display = "";
+    });
 
     const overlay = page.locator("#potato-meet-overlay");
     await expect(overlay).toBeVisible({ timeout: 10_000 });

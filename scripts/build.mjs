@@ -51,7 +51,10 @@ await cp(path.join(root, "src/popup/popup.css"), path.join(dist, "popup/popup.cs
 
 const mediapipeWasm = path.join(root, "node_modules/@mediapipe/tasks-vision/wasm");
 await mkdir(path.join(dist, "mediapipe/wasm"), { recursive: true });
-await cp(mediapipeWasm, path.join(dist, "mediapipe/wasm"), { recursive: true });
+// The host explicitly selects these two files; no runtime path loads nosimd.
+await Promise.all(["vision_wasm_internal.js", "vision_wasm_internal.wasm"].map((file) =>
+  cp(path.join(mediapipeWasm, file), path.join(dist, "mediapipe/wasm", file))
+));
 // Chrome Content ScriptとMediaPipe本体が同じ隔離領域で初期化関数を共有できるようにする。
 await appendFile(
   path.join(dist, "mediapipe/wasm/vision_wasm_internal.js"),

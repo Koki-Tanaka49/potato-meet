@@ -1,6 +1,6 @@
 {
   "name": "potato-meet",
-  "version": "0.3.4",
+  "version": "0.3.5",
   "private": true,
   "type": "module",
   "description": "A Chrome extension that overlays animated potatoes on faces in Google Meet",

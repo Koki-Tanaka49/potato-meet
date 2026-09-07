@@ -86,10 +86,10 @@ function render(response: ExtensionStateResponse | null): void {
   trackingStatus.hidden = !response?.enabled && !response?.detectorError;
   trackingStatus.textContent = response?.detectorError
     ? `Face tracking failed: ${response.detectorError} Turn potatoes off and on to retry.`
-    : !response?.detectorReady
-      ? "Starting face tracking…"
-      : response.trackedCount === 0
-        ? "No other participants’ videos found. Your own video is excluded."
+    : response?.trackedCount === 0
+      ? "No other participants’ videos found. Your own video is excluded."
+      : !response?.detectorReady
+        ? "Starting face tracking…"
         : `Checking ${response.trackedCount} video(s) for faces. Potatoes appear after a face is detected.`;
   if (response) selectVariant(response.variant);
   updatePreview();

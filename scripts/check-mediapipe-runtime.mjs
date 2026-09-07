@@ -30,9 +30,7 @@ export async function checkMediapipeRuntime(root = process.cwd()) {
   const runtimeFiles = [
     "dist/face-tracker-worker.js",
     "dist/mediapipe/wasm/vision_wasm_internal.js",
-    "dist/mediapipe/wasm/vision_wasm_internal.wasm",
-    "dist/mediapipe/wasm/vision_wasm_nosimd_internal.js",
-    "dist/mediapipe/wasm/vision_wasm_nosimd_internal.wasm"
+    "dist/mediapipe/wasm/vision_wasm_internal.wasm"
   ];
 
   for (const relativePath of runtimeFiles) {

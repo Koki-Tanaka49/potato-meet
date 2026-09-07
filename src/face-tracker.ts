@@ -33,7 +33,8 @@ export class FaceTracker {
     this.worker.addEventListener("messageerror", this.handleWorkerFailure);
   }
 
-  static async create(): Promise<FaceTracker> {
+  static async create(signal?: AbortSignal): Promise<FaceTracker> {
+    signal?.throwIfAborted();
     // Run the worker in an extension frame: a page-origin Blob worker inherits
     // Meet's CSP, which can forbid the WebAssembly required by MediaPipe.
     const frame = document.createElement("iframe");
@@ -64,16 +65,22 @@ export class FaceTracker {
           cleanup();
           reject(new Error("Could not start the face-tracking worker."));
         };
+        const handleAbort = (): void => {
+          cleanup();
+          reject(new DOMException("Face tracking was cancelled.", "AbortError"));
+        };
         const timeout = setTimeout(() => {
           cleanup();
           reject(new Error("Face tracking timed out. Turn it off and on to retry."));
         }, 15_000);
         const cleanup = (): void => {
           clearTimeout(timeout);
+          signal?.removeEventListener("abort", handleAbort);
           worker.removeEventListener("message", handleMessage);
           worker.removeEventListener("error", handleError);
           worker.removeEventListener("messageerror", handleError);
         };
+        signal?.addEventListener("abort", handleAbort, { once: true });
         worker.addEventListener("message", handleMessage);
         worker.addEventListener("error", handleError);
         worker.addEventListener("messageerror", handleError);

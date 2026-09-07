@@ -5,12 +5,12 @@ title: Potato Meet Privacy Policy / プライバシーポリシー
 
 # Potato Meet Privacy Policy / プライバシーポリシー
 
-> Draft for publication. Before publishing, replace every bracketed placeholder and verify the final release package. This document is an operational template, not legal advice.
+> This policy describes Potato Meet version 0.3.5. It is not legal advice.
 >
-> 公開用ドラフトです。公開前に角括弧のプレースホルダーをすべて置き換え、最終配布パッケージを確認してください。本書は運用のためのひな型であり、法的助言ではありません。
+> 本ポリシーは Potato Meet バージョン 0.3.5 を対象とします。本書は法的助言ではありません。
 
-- Last updated / 最終更新日: 2026-09-04
-- Effective date / 発効日: `[PUBLICATION DATE / 公開日]`
+- Last updated / 最終更新日: 2026-09-07
+- Effective date / 発効日: 2026-09-07
 - Operator / 運営者: Koki Tanaka
 - Support page / サポートページ: https://koki-tanaka49.github.io/potato-meet/
 - Contact email / 問い合わせ用メールアドレス: koki.tanaka.workwork@gmail.com

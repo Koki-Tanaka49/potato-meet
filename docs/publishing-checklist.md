@@ -94,14 +94,14 @@ Official source: [Prepare your extension](https://developer.chrome.com/docs/webs
 
 | Check | Owner | Status / action |
 |---|---|---|
-| Replace operator, contact, address, support, policy URL, and publication-date placeholders | Privacy owner / website owner | `BLOCKED` Operator, email, planned URLs, and `Not applicable` address are recorded. Set the effective date when the policy is published |
+| Replace operator, contact, address, support, policy URL, and publication-date placeholders | Privacy owner / website owner | `[x]` Operator, email, support URL, policy URL, `Not applicable` address, and the effective date are published |
 | Record the MediaPipe external-traffic review in the policy | Privacy owner and repository maintainer | `[x]` Policy describes the 0.10.21 test, runtime inspection, version pin, and update-time re-review |
-| Publish the bilingual privacy policy at an HTTPS URL available without login | Website owner | `[ ]` Draft target: `https://koki-tanaka49.github.io/potato-meet/privacy-policy.html`; GitHub Pages is not enabled yet |
-| Keep the privacy policy, detailed listing, Privacy tab, and in-product text consistent | Privacy owner / Dashboard editor | `[ ]` Repository text is aligned; verify the final published policy and Dashboard answers |
+| Publish the bilingual privacy policy at an HTTPS URL available without login | Website owner | `[x]` Published at `https://koki-tanaka49.github.io/potato-meet/privacy-policy.html`; HTTPS availability was verified on 2026-09-07 |
+| Keep the privacy policy, detailed listing, Privacy tab, and in-product text consistent | Privacy owner / Dashboard editor | `[ ]` Repository text and published policy are aligned; verify the final Dashboard answers |
 | Disclose the limited Meet text/attribute scan used to exclude self video and screen shares | Privacy owner / Dashboard editor | `[x]` Popup, policy, and listing drafts now disclose local participant-tile text processing |
-| Add the affirmative Chrome Web Store Limited Use statement | Website owner | `[x]` Draft text is in `privacy-policy.md`; it still needs publication |
+| Add the affirmative Chrome Web Store Limited Use statement | Website owner | `[x]` The published `privacy-policy.html` includes the statement |
 | Provide an affirmative action before local face processing begins | Privacy owner and repository maintainer | `[x]` Processing is off by default and begins only after the user sees the local-processing notice and turns on `Show potatoes` |
-| Provide a support URL or monitored support email | Website owner / Dashboard editor | `[x]` `koki.tanaka.workwork@gmail.com` and the safety notice are included in the support-page draft; publication is tracked separately |
+| Provide a support URL or monitored support email | Website owner / Dashboard editor | `[x]` `https://koki-tanaka49.github.io/potato-meet/` and `koki.tanaka.workwork@gmail.com` are published with the safety notice |
 | Define a process for privacy questions and deletion requests | Privacy owner | `[ ]` The extension has no operator server data; explain how users clear local settings |
 
 Official sources:
@@ -116,7 +116,7 @@ Official sources:
 |---|---|---|
 | Paste the final detailed description in every supported locale | Dashboard editor | `[ ]` English and Japanese drafts are in `chrome-web-store-listing.md` |
 | Select **Just for Fun** as the primary category | Dashboard editor | `[ ]` Use Communication only if final positioning centers on conferencing utility |
-| Add homepage, support, and privacy policy URLs | Dashboard editor / website owner | `[ ]` Planned URLs are documented; verify them after GitHub Pages is enabled |
+| Add homepage, support, and privacy policy URLs | Dashboard editor / website owner | `[ ]` Use the published URLs and verify them in the Dashboard |
 | Paste the single-purpose statement | Dashboard editor | `[ ]` Use the exact narrow statement in `chrome-web-store-listing.md` |
 | Justify `storage` | Dashboard editor | `[ ]` It stores only potato style and sunglasses preference |
 | Justify `scripting` and Meet host access | Dashboard editor | `[ ]` Restore a missing content-script connection in the existing Meet tab; use the updated listing justification |

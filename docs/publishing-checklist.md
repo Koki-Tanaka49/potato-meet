@@ -67,13 +67,13 @@ Official sources:
 | Include Apache 2.0 text and applicable notices | Repository | `[x]` The build copies `licenses/apache-2.0.txt` and `licenses/mediapipe-notice.txt` |
 | Add a distributed notice that identifies the appended changes to `vision_wasm_internal.js`, or obtain a review that the existing notice is sufficient | Repository maintainer / rights reviewer | `[x]` The build appends an inline modification notice and `docs/third-party.md` describes the two assignments and their purpose |
 | Add the required extension icon to the package | Repository maintainer | `[x]` The build includes only the four runtime icon sizes and excludes image-generation originals |
-| Confirm `name`, `version`, `description`, and icons before ZIP creation | Repository maintainer | `[x]` Version 0.3.2 package metadata and icon references are internally consistent; repeat after any title change |
-| Run type checking, unit tests, and production build | Repository maintainer | `[x]` `npm run check` passed on 2026-09-04; all 12 unit tests passed, including the MediaPipe version and outbound-indicator build check |
-| Run the automated browser test | Repository maintainer | `[x]` `npm run test:browser` passed on 2026-09-04, including the prominent in-product local-processing notice |
+| Confirm `name`, `version`, `description`, and icons before ZIP creation | Repository maintainer | `[x]` Version 0.3.5 package metadata and icon references are internally consistent; repeat after any title change |
+| Run type checking, unit tests, and production build | Repository maintainer | `[x]` `npm run check` passed on 2026-09-04; repeat after any source change |
+| Run the automated browser test | Repository maintainer | `[x]` `npm run test:browser` passed on 2026-09-04, including the prominent in-product local-processing notice; repeat after any source change |
 | Run the manual real-Meet test | Tester | `[ ]` Schedule later; include two participants, head direction, mouth movement, tile changes, and a 15-minute session |
 | Inspect the built package for secrets, source-only fixtures, development files, unexpected URLs, and remote code | Repository maintainer | `[x]` `npm run release:check` passed on 2026-09-04; all 25 files, text URLs, secret-like patterns, and the distributed modification notice were reviewed. Only expected Meet and third-party notice URLs were found |
-| Create a ZIP with `manifest.json` at the ZIP root | Repository maintainer | `[x]` `artifacts/potato-meet-0.3.2.zip` contains the manifest at the root and 25 files |
-| Record the final ZIP SHA-256 and file list | Repository maintainer | `[x]` Candidate SHA-256: `fb437bb8023a577e7a5be091cd9fa0c8fcc463c4689c3836bb4b33e729d4db8b`; replace this record if any release file changes |
+| Create a ZIP with `manifest.json` at the ZIP root | Repository maintainer | `[x]` `artifacts/potato-meet-0.3.5.zip` contains the manifest at the root and 25 files |
+| Record the final ZIP SHA-256 and file list | Repository maintainer | `[x]` Candidate SHA-256: `a69a614f7ef0988d281f57cc03a723c1d2ee1a5d74edd2db50ac9ede315dac2c`; regenerate and replace this record after any release-file change |
 
 Suggested final commands after the blockers are resolved:
 
@@ -82,8 +82,8 @@ npm ci
 npm run check
 npm run test:browser
 npm run release:check
-unzip -l artifacts/potato-meet-0.3.2.zip
-shasum -a 256 artifacts/potato-meet-0.3.2.zip
+unzip -l artifacts/potato-meet-0.3.5.zip
+shasum -a 256 artifacts/potato-meet-0.3.5.zip
 ```
 
 Check that `manifest.json` appears at the root of the `unzip -l` output. Each later upload must use a higher manifest version.

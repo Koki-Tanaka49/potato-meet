@@ -43,19 +43,19 @@ describe("Meetタイル検出", () => {
     expect(findMeetCandidates()[0]?.tile.dataset.participantId).toBe("remote");
   });
 
-  it("人数を制限せず、面積が大きい順に全員を選ぶ", () => {
+  it("人数を制限せず、検出順に全員を選ぶ", () => {
     for (let index = 1; index <= 6; index += 1) {
       addTile({ id: `remote-${index}`, width: index * 100, height: index * 60 });
     }
     const result = findMeetCandidates();
     expect(result).toHaveLength(6);
     expect(result.map((candidate) => candidate.tile.dataset.participantId)).toEqual([
-      "remote-6",
-      "remote-5",
-      "remote-4",
-      "remote-3",
+      "remote-1",
       "remote-2",
-      "remote-1"
+      "remote-3",
+      "remote-4",
+      "remote-5",
+      "remote-6"
     ]);
   });
 });

@@ -8,7 +8,7 @@ This document contains paste-ready text for the Chrome Web Store Developer Dashb
 
 | Item | Current implementation |
 |---|---|
-| Manifest | Manifest V3, version 0.3.2 |
+| Manifest | Manifest V3, version 0.3.5 |
 | Chrome permission | `storage`, `scripting`; host access limited to `https://meet.google.com/*` |
 | Site access | Content script and bundled resources are limited to `https://meet.google.com/*` |
 | Main processing | Other participants' visible video frames are processed in a local Worker using bundled MediaPipe JavaScript, WebAssembly, and model files |

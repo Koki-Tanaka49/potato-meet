@@ -125,6 +125,8 @@ Google Meet以外のタブではポテト表示を操作できず、「Google Me
 ### Chrome権限
 
 - `storage`: ポテト種類とサングラス設定の保存
+- `scripting`: 開いているMeetタブとの接続が切れた場合に同梱Content Scriptを再起動
+- ホスト権限 `https://meet.google.com/*`: 再接続先をMeetに限定
 
 Content Scriptの実行先と同梱素材の公開先は`https://meet.google.com/*`だけです。
 

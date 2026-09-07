@@ -9,7 +9,7 @@ This document contains paste-ready text for the Chrome Web Store Developer Dashb
 | Item | Current implementation |
 |---|---|
 | Manifest | Manifest V3, version 0.3.2 |
-| Chrome permission | `storage` only |
+| Chrome permission | `storage`, `scripting`; host access limited to `https://meet.google.com/*` |
 | Site access | Content script and bundled resources are limited to `https://meet.google.com/*` |
 | Main processing | Other participants' visible video frames are processed in a local Worker using bundled MediaPipe JavaScript, WebAssembly, and model files |
 | Persistent data | Potato style and sunglasses setting in `chrome.storage.local` |
@@ -65,7 +65,7 @@ Privacy by design
 • Video, face images, facial landmarks, face direction, mouth state, participant names, and meeting URLs are not persistently stored.
 • Audio is not processed.
 • The extension has no account, advertising, operator analytics server, or remote logging.
-• The only requested Chrome permission is storage, used to remember the selected potato style and sunglasses setting.
+• Chrome permissions are storage for potato style and sunglasses preferences, and scripting to reconnect an existing Google Meet tab. Host access is limited to meet.google.com.
 • The extension runs only on https://meet.google.com/*.
 
 The extension reads limited Google Meet tile text and attributes only to exclude your own video and screen shares. This information is processed locally and is not persistently stored.
@@ -90,7 +90,7 @@ Google Meetのタブで拡張機能のポップアップを開き、「Show pota
 ・映像、顔画像、顔の特徴点、向き、口の状態、参加者名、会議URLは永続保存しません。
 ・音声は処理しません。
 ・アカウント、広告、運営者の分析サーバー、遠隔ログはありません。
-・Chromeの権限はstorageだけで、ポテトの種類とサングラス設定の保存に使います。
+・Chrome権限は設定保存用のstorageと、開いているMeetタブへの再接続用のscriptingです。アクセス先はmeet.google.comに限定します。
 ・実行先はhttps://meet.google.com/*だけです。
 
 自分の映像と画面共有を対象から除外するため、Google Meetの参加者タイルにある表示テキストと属性を必要な範囲で一時参照します。この情報は端末内で処理し、永続保存しません。
@@ -130,6 +130,12 @@ Google Meetで表示中の相手参加者の顔に、ブラウザ内で生成し
 
 ```text
 The storage permission is used only to save the user's selected potato style and sunglasses on/off preference in chrome.storage.local. Video, face images, facial landmarks, participant names, and meeting URLs are not stored with this permission.
+```
+
+### `scripting` permission justification
+
+```text
+The scripting permission loads the bundled content.js into an existing Google Meet tab only when the popup cannot connect to its content script. It restores the On/Off control without requiring the user to leave or reload the call. It does not enable face processing automatically and does not inject remote code. Injection is restricted to https://meet.google.com/*.
 ```
 
 ### Host access justification for `https://meet.google.com/*`
@@ -240,7 +246,7 @@ No Potato Meet account or paid subscription is required. A Google account may be
 8. Open a non-Meet tab and open the popup. Expected: the overlay switch is unavailable and the extension states that Google Meet must be opened.
 
 Privacy notes for review:
-• The only Chrome permission is storage, used for potato style and sunglasses preferences.
+• Chrome permissions are storage for preferences and scripting to reconnect existing Meet tabs, with host access limited to meet.google.com.
 • Runtime access is limited to https://meet.google.com/*.
 • Video frames and facial estimates are processed in a local Worker and are not persistently stored.
 • All JavaScript, WebAssembly, the Face Landmarker model, and image assets are bundled in the extension package.

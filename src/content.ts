@@ -414,6 +414,15 @@ class PotatoMeetController {
   }
 }
 
+// Reconnection can inject this bundle while document_idle injection is racing.
+// Register exactly one controller/listener set in each extension execution world.
+const contentScope = globalThis as typeof globalThis & { potatoMeetInitialized?: boolean };
+if (!contentScope.potatoMeetInitialized) {
+  contentScope.potatoMeetInitialized = true;
+  initializeContent();
+}
+
+function initializeContent(): void {
 const controller = new PotatoMeetController();
 let variantChangedWhileLoading = false;
 let sunglassesChangedWhileLoading = false;
@@ -459,3 +468,5 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
     controller.setSunglassesEnabled(sunglassesEnabled);
   }
 });
+
+}

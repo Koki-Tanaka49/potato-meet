@@ -58,7 +58,7 @@ Official sources:
 | Check | Owner | Status / action |
 |---|---|---|
 | Use Manifest V3 | Repository | `[x]` `manifest_version` is 3 |
-| Limit Chrome permissions to the minimum | Repository | `[x]` Only `storage` is requested |
+| Limit Chrome permissions to the minimum | Repository | `[x]` `storage` for preferences; `scripting` and Meet-only host access for reconnection |
 | Limit site access to Google Meet | Repository | `[x]` Content script and web-accessible resources match only `https://meet.google.com/*` |
 | Bundle executable JavaScript and WebAssembly | Repository | `[x]` Current build copies the MediaPipe WebAssembly and bundles JavaScript locally |
 | Bundle the pinned model and verify its SHA-256 | Repository | `[x]` Build verifies `64184e229b263107bc2b804c6625db1341ff2bb731874b0bcc2fe6544e0bc9ff` |
@@ -119,6 +119,7 @@ Official sources:
 | Add homepage, support, and privacy policy URLs | Dashboard editor / website owner | `[ ]` Planned URLs are documented; verify them after GitHub Pages is enabled |
 | Paste the single-purpose statement | Dashboard editor | `[ ]` Use the exact narrow statement in `chrome-web-store-listing.md` |
 | Justify `storage` | Dashboard editor | `[ ]` It stores only potato style and sunglasses preference |
+| Justify `scripting` and Meet host access | Dashboard editor | `[ ]` Restore a missing content-script connection in the existing Meet tab; use the updated listing justification |
 | Justify Google Meet site access | Dashboard editor | `[ ]` Explain local frame processing, the limited tile-label scan, and overlay drawing |
 | Select “No, I am not using remote code” | Dashboard editor | `[ ]` Confirm again against the final ZIP |
 | Select data types conservatively | Dashboard editor / privacy owner | `[ ]` Current source supports Personally identifiable information, Personal communications, and Website content because local processing is still in scope |

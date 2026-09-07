@@ -34,7 +34,7 @@ Potato Meet always starts turned off in each new Google Meet tab.
 
 ## Updating and troubleshooting
 
-After rebuilding, reload Potato Meet in `chrome://extensions`, then reload the Meet tab and turn **Show potatoes** on again. A running tab keeps the old content script until it is reloaded. For a store installation, the new version must first be published and installed; rebuilding this repository does not update it.
+After rebuilding, reload Potato Meet in `chrome://extensions`, then open its popup on the Meet tab. Version 0.3.4 reconnects tabs missing the content script and lets you turn **Show potatoes** on without leaving the call. If site access is denied or an older context persists, reload the Meet tab. For a store installation, the new version must first be published and installed; rebuilding this repository does not update it.
 
 Version 0.3.3 starts face tracking in an extension-owned frame and worker so that the Meet page's WebAssembly restrictions do not prevent initialization. The popup reports initialization, missing participant videos, and startup errors. The extension still excludes your own video.
 
@@ -72,7 +72,7 @@ Do not publish until the MediaPipe review is resolved and the operator, contact,
 
 ## Privacy
 
-- The only requested Chrome permission is `storage`.
+- Chrome permissions are `storage` for preferences and `scripting` to reconnect an existing Meet tab. Host access is limited to `https://meet.google.com/*`.
 - The extension runs only on `https://meet.google.com/*`.
 - It does not request microphone, camera, recording, or browsing-history permissions.
 - It does not use a CDN, analytics service, or remote logging.

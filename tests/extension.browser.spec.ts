@@ -1,5 +1,5 @@
 import { expect, test, chromium, type Worker } from "@playwright/test";
-import { mkdtemp, readFile } from "node:fs/promises";
+import { cp, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { rmSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -27,10 +27,18 @@ async function getMeetState(worker: Worker): Promise<{
   });
 }
 
-for (const restrictiveCsp of [false, true]) {
-test(`模擬Meetで相手だけに表示し、ON/OFFを繰り返せる (CSP: ${restrictiveCsp})`, async () => {
-  const extensionPath = path.resolve("dist");
+for (const mode of ["normal", "csp", "reconnect"] as const) {
+const restrictiveCsp = mode !== "normal";
+test(`模擬Meetで相手だけに表示し、ON/OFFを繰り返せる (${mode})`, async () => {
+  let extensionPath = path.resolve("dist");
   const userDataDir = await mkdtemp(path.join(os.tmpdir(), "potato-meet-chrome-"));
+  if (mode === "reconnect") {
+    extensionPath = path.join(userDataDir, "extension");
+    await cp(path.resolve("dist"), extensionPath, { recursive: true });
+    const manifest = JSON.parse(await readFile(path.join(extensionPath, "manifest.json"), "utf8"));
+    delete manifest.content_scripts; // Model a tab opened before extension installation/update.
+    await writeFile(path.join(extensionPath, "manifest.json"), JSON.stringify(manifest));
+  }
   const mockTemplate = await readFile(path.resolve("tests/mock-meet.html"), "utf8");
   const portrait = await readFile(path.resolve("tests/fixtures/remote-face-open.png"));
   const mockHtml = mockTemplate.replace(
@@ -70,6 +78,14 @@ test(`模擬Meetで相手だけに表示し、ON/OFFを繰り返せる (CSP: ${r
 
     let worker = context.serviceWorkers()[0];
     worker ??= await context.waitForEvent("serviceworker", { timeout: 15_000 });
+    if (mode === "reconnect") {
+      await expect(getMeetState(worker)).rejects.toThrow();
+      await worker.evaluate(async () => {
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        await chrome.scripting.executeScript({ target: { tabId: tab!.id! }, files: ["content.js"] });
+      });
+      expect(await getMeetState(worker)).toMatchObject({ enabled: false });
+    }
     await sendToMeet(worker, true);
 
     const overlay = page.locator("#potato-meet-overlay");
@@ -81,6 +97,14 @@ test(`模擬Meetで相手だけに表示し、ON/OFFを繰り返せる (CSP: ${r
     }, { timeout: 10_000 }).toBe(true);
     await expect(overlay).toHaveAttribute("data-potato-count", "1", { timeout: 4_000 });
     expect((await getMeetState(worker)).trackedCount).toBe(1);
+    if (mode === "reconnect") {
+      await worker.evaluate(async () => {
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        await chrome.scripting.executeScript({ target: { tabId: tab!.id! }, files: ["content.js"] });
+      });
+      expect(await getMeetState(worker)).toMatchObject({ enabled: true, detectorReady: true });
+      await expect(page.locator('iframe[src$="/face-tracker-host.html"]')).toHaveCount(1);
+    }
     await expect(overlay).toHaveAttribute("data-static-count", "0", { timeout: 5_000 });
     await expect(overlay).toHaveAttribute("data-open-mouth-count", "1", { timeout: 5_000 });
     await expect(overlay).toHaveAttribute("data-potato-variant", "classic");

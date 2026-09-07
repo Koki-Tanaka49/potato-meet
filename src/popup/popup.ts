@@ -1,3 +1,4 @@
+import { sendToTab } from "./connection";
 import {
   isPotatoVariant,
   type ExtensionMessage,
@@ -35,6 +36,7 @@ const selectionSummary: HTMLElement = selectionSummaryElement;
 const connectionNotice: HTMLElement = connectionNoticeElement;
 const trackingStatus = document.querySelector<HTMLElement>("#tracking-status")!;
 let changingEnabled = false;
+let actionRevision = 0;
 let storedSunglassesEnabled = false;
 let selectedVariant: PotatoVariant = "classic";
 
@@ -49,14 +51,8 @@ async function activeTab(): Promise<chrome.tabs.Tab | undefined> {
   return tabs[0];
 }
 
-async function send(message: ExtensionMessage): Promise<ExtensionStateResponse | null> {
-  const tab = await activeTab();
-  if (tab?.id === undefined) return null;
-  try {
-    return await chrome.tabs.sendMessage(tab.id, message) as ExtensionStateResponse;
-  } catch {
-    return null;
-  }
+async function send(message: ExtensionMessage, reconnect = false): Promise<ExtensionStateResponse | null> {
+  return sendToTab(await activeTab(), message, reconnect);
 }
 
 function selectVariant(variant: PotatoVariant): void {
@@ -100,6 +96,7 @@ function render(response: ExtensionStateResponse | null): void {
 }
 
 toggle.addEventListener("change", async () => {
+  actionRevision += 1;
   changingEnabled = true;
   toggle.disabled = true;
   try {
@@ -151,12 +148,15 @@ void (async () => {
   const stored = await chrome.storage.local.get(["potatoVariant", "sunglassesEnabled"]);
   if (isPotatoVariant(stored.potatoVariant)) selectVariant(stored.potatoVariant);
   if (typeof stored.sunglassesEnabled === "boolean") storedSunglassesEnabled = stored.sunglassesEnabled;
-  render(await send({ type: "POTATO_GET_STATE" }));
+  const revision = actionRevision;
+  const response = await send({ type: "POTATO_GET_STATE" }, true);
+  if (revision === actionRevision && !changingEnabled) render(response);
 })();
 
 // Initialization completes after the toggle response; keep the open popup current.
 window.setInterval(async () => {
   if (changingEnabled) return;
+  const revision = actionRevision;
   const response = await send({ type: "POTATO_GET_STATE" });
-  if (!changingEnabled) render(response);
+  if (!changingEnabled && revision === actionRevision) render(response);
 }, 1_000);

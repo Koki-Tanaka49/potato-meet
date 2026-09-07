@@ -80,7 +80,7 @@ Chrome Web Storeの方針では、端末内だけで処理する情報も開示�
 
 ### 8. 情報の保護
 
-顔検出用のJavaScript、WebAssembly、モデルは拡張機能パッケージに同梱し、拡張機能内のURLから読み込みます。実行対象は`https://meet.google.com/*`に限定し、必要なChrome権限は設定保存用の`storage`だけです。ただし、端末、Chrome、Google Meet、第三者ライブラリに絶対的な安全性を保証するものではありません。
+顔検出用のJavaScript、WebAssembly、モデルは拡張機能パッケージに同梱し、拡張機能内のURLから読み込みます。実行対象は`https://meet.google.com/*`に限定し、Chrome権限は設定保存用の`storage`と、開いているMeetタブへの再接続用の`scripting`です。再接続のホスト権限も`https://meet.google.com/*`に限定します。ただし、端末、Chrome、Google Meet、第三者ライブラリに絶対的な安全性を保証するものではありません。
 
 ### 9. Chrome Web Store Limited Use
 
@@ -164,7 +164,7 @@ Official sources:
 
 ### 8. Security
 
-Face-processing JavaScript, WebAssembly, and the model are bundled in the extension package and loaded from extension URLs. Execution is limited to `https://meet.google.com/*`, and the only requested Chrome permission is `storage` for preferences. No device, browser, Google Meet service, or third-party component can be guaranteed to be completely secure.
+Face-processing JavaScript, WebAssembly, and the model are bundled in the extension package and loaded from extension URLs. Execution is limited to `https://meet.google.com/*`, and Chrome permissions are `storage` for preferences and `scripting` to reconnect existing Meet tabs. Host access for reconnection is also limited to `https://meet.google.com/*`. No device, browser, Google Meet service, or third-party component can be guaranteed to be completely secure.
 
 ### 9. Chrome Web Store Limited Use
 

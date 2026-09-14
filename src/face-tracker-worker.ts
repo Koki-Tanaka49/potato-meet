@@ -1,6 +1,7 @@
 import { FaceLandmarker, type NormalizedLandmark } from "@mediapipe/tasks-vision";
 import { estimateHeadMotion } from "./motion";
-import type { FaceObservation, NormalizedFaceBox } from "./types";
+import type { DetectionOutcome } from "./face-tracker";
+import type { NormalizedFaceBox } from "./types";
 
 interface InitMessage {
   type: "init";
@@ -12,16 +13,10 @@ interface InitMessage {
 interface DetectMessage {
   type: "detect";
   requestId: number;
-  timestamp: number;
   frame: ImageBitmap;
 }
 
 type WorkerRequest = InitMessage | DetectMessage;
-
-interface DetectionOutcome {
-  observation: FaceObservation | null;
-  readable: boolean;
-}
 
 const workerScope = globalThis as typeof globalThis & {
   importScripts: (...urls: string[]) => void;
@@ -63,8 +58,9 @@ async function initialize(message: InitMessage): Promise<void> {
     { wasmLoaderPath: "", wasmBinaryPath: message.wasmBinaryPath },
     {
       baseOptions: { modelAssetPath: message.modelPath },
-      runningMode: "VIDEO",
-      numFaces: 1,
+      // Different cameras share this worker, so each frame must be detected independently.
+      runningMode: "IMAGE",
+      numFaces: 4,
       minFaceDetectionConfidence: 0.5,
       minFacePresenceConfidence: 0.5,
       minTrackingConfidence: 0.5,
@@ -76,25 +72,21 @@ async function initialize(message: InitMessage): Promise<void> {
 }
 
 function detect(message: DetectMessage): DetectionOutcome {
-  if (!landmarker) return { observation: null, readable: false };
   try {
-    const result = landmarker.detectForVideo(message.frame, message.timestamp);
-    const landmarks = result.faceLandmarks[0];
-    if (!landmarks?.length) return { observation: null, readable: true };
-
-    const jawOpen = result.faceBlendshapes[0]?.categories.find(
-      (category) => category.categoryName === "jawOpen"
-    )?.score ?? 0;
+    if (!landmarker) return { observations: [], readable: false };
+    const result = landmarker.detect(message.frame);
     return {
       readable: true,
-      observation: {
+      observations: result.faceLandmarks.map((landmarks, index) => ({
         box: landmarksToBox(landmarks),
-        jawOpen,
+        jawOpen: result.faceBlendshapes[index]?.categories.find(
+          (category) => category.categoryName === "jawOpen"
+        )?.score ?? 0,
         ...estimateHeadMotion(landmarks)
-      }
+      }))
     };
   } catch {
-    return { observation: null, readable: false };
+    return { observations: [], readable: false };
   } finally {
     message.frame.close();
   }

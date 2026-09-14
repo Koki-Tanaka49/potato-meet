@@ -1,5 +1,5 @@
 import { expect, test, chromium, type Worker } from "@playwright/test";
-import { mkdtemp, readFile } from "node:fs/promises";
+import { cp, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { rmSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -27,9 +27,18 @@ async function getMeetState(worker: Worker): Promise<{
   });
 }
 
-test("模擬Meetで相手だけに表示し、ON/OFFを繰り返せる", async () => {
-  const extensionPath = path.resolve("dist");
+for (const mode of ["normal", "csp", "reconnect"] as const) {
+const restrictiveCsp = mode !== "normal";
+test(`模擬Meetで相手だけに表示し、ON/OFFを繰り返せる (${mode})`, async () => {
+  let extensionPath = path.resolve("dist");
   const userDataDir = await mkdtemp(path.join(os.tmpdir(), "potato-meet-chrome-"));
+  if (mode === "reconnect") {
+    extensionPath = path.join(userDataDir, "extension");
+    await cp(path.resolve("dist"), extensionPath, { recursive: true });
+    const manifest = JSON.parse(await readFile(path.join(extensionPath, "manifest.json"), "utf8"));
+    delete manifest.content_scripts; // Model a tab opened before extension installation/update.
+    await writeFile(path.join(extensionPath, "manifest.json"), JSON.stringify(manifest));
+  }
   const mockTemplate = await readFile(path.resolve("tests/mock-meet.html"), "utf8");
   const portrait = await readFile(path.resolve("tests/fixtures/remote-face-open.png"));
   const mockHtml = mockTemplate.replace(
@@ -50,7 +59,12 @@ test("模擬Meetで相手だけに表示し、ON/OFFを繰り返せる", async (
 
   try {
     await context.route("https://meet.google.com/mock-potato-room", async (route) => {
-      await route.fulfill({ status: 200, contentType: "text/html; charset=utf-8", body: mockHtml });
+      await route.fulfill({ status: 200, contentType: "text/html; charset=utf-8", body: mockHtml,
+        headers: restrictiveCsp ? {
+          // The Blob worker used before 0.3.3 inherits this policy and fails WASM initialization.
+          "Content-Security-Policy": "script-src 'self' 'unsafe-inline'; worker-src 'self' blob:;"
+        } : {}
+      });
     });
     context.on("request", (request) => {
       const url = request.url();
@@ -64,17 +78,43 @@ test("模擬Meetで相手だけに表示し、ON/OFFを繰り返せる", async (
 
     let worker = context.serviceWorkers()[0];
     worker ??= await context.waitForEvent("serviceworker", { timeout: 15_000 });
+    if (mode === "reconnect") {
+      await expect(getMeetState(worker)).rejects.toThrow();
+      await worker.evaluate(async () => {
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        await chrome.scripting.executeScript({ target: { tabId: tab!.id! }, files: ["content.js"] });
+      });
+      expect(await getMeetState(worker)).toMatchObject({ enabled: false });
+    }
+    // Enabling before a camera is visible must not load MediaPipe yet.
+    await page.locator("[data-participant-id='remote-aki']").evaluate((tile) => {
+      (tile as HTMLElement).style.display = "none";
+    });
     await sendToMeet(worker, true);
+    await page.waitForTimeout(900);
+    expect(await getMeetState(worker)).toMatchObject({ detectorReady: false, trackedCount: 0 });
+    await expect(page.locator('iframe[src$="/face-tracker-host.html"]')).toHaveCount(0);
+    await page.locator("[data-participant-id='remote-aki']").evaluate((tile) => {
+      (tile as HTMLElement).style.display = "";
+    });
 
     const overlay = page.locator("#potato-meet-overlay");
     await expect(overlay).toBeVisible({ timeout: 10_000 });
-    await expect(overlay).toHaveAttribute("data-potato-count", "1", { timeout: 4_000 });
     await expect.poll(async () => {
       const state = await getMeetState(worker);
       if (state.detectorError) throw new Error(`顔検出の初期化に失敗: ${state.detectorError}`);
       return state.detectorReady;
     }, { timeout: 10_000 }).toBe(true);
+    await expect(overlay).toHaveAttribute("data-potato-count", "1", { timeout: 4_000 });
     expect((await getMeetState(worker)).trackedCount).toBe(1);
+    if (mode === "reconnect") {
+      await worker.evaluate(async () => {
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        await chrome.scripting.executeScript({ target: { tabId: tab!.id! }, files: ["content.js"] });
+      });
+      expect(await getMeetState(worker)).toMatchObject({ enabled: true, detectorReady: true });
+      await expect(page.locator('iframe[src$="/face-tracker-host.html"]')).toHaveCount(1);
+    }
     await expect(overlay).toHaveAttribute("data-static-count", "0", { timeout: 5_000 });
     await expect(overlay).toHaveAttribute("data-open-mouth-count", "1", { timeout: 5_000 });
     await expect(overlay).toHaveAttribute("data-potato-variant", "classic");
@@ -107,6 +147,16 @@ test("模擬Meetで相手だけに表示し、ON/OFFを繰り返せる", async (
     await page.locator("#unmarked-screen-share").evaluate((element) => element.remove());
     await expect.poll(async () => (await getMeetState(worker)).trackedCount).toBe(1);
 
+    // A single camera can contain two people; each face needs its own overlay.
+    await page.locator("#remote").evaluate((video) => { video.dataset.faces = "2"; });
+    await expect(overlay).toHaveAttribute("data-potato-count", "2", { timeout: 10_000 });
+    await page.screenshot({ path: test.info().outputPath("two-faces-one-camera.png"), fullPage: true });
+    await page.locator("#remote").evaluate((video) => { video.dataset.faces = "4"; });
+    await expect(overlay).toHaveAttribute("data-potato-count", "4", { timeout: 10_000 });
+    await page.screenshot({ path: test.info().outputPath("four-faces-one-camera.png"), fullPage: true });
+    await page.locator("#remote").evaluate((video) => { delete video.dataset.faces; });
+    await expect(overlay).toHaveAttribute("data-potato-count", "1", { timeout: 10_000 });
+
     const renderCountBefore = Number(await overlay.getAttribute("data-render-count"));
     await page.waitForTimeout(1_000);
     const renderCountAfter = Number(await overlay.getAttribute("data-render-count"));
@@ -116,7 +166,11 @@ test("模擬Meetで相手だけに表示し、ON/OFFを繰り返せる", async (
     await worker.evaluate(() => chrome.storage.local.set({ sunglassesEnabled: true }));
     await expect(overlay).toHaveAttribute("data-sunglasses-count", "1");
     expect((await getMeetState(worker)).sunglassesEnabled).toBe(true);
-    await page.screenshot({ path: "docs/images/potato-meet-browser.png", fullPage: true });
+    await page.screenshot({ path: test.info().outputPath("meet.png"), fullPage: true });
+    const originalViewport = page.viewportSize();
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.screenshot({ path: test.info().outputPath("meet-1280x800.png"), fullPage: true });
+    if (originalViewport) await page.setViewportSize(originalViewport);
 
     await worker.evaluate(() => chrome.storage.local.set({ potatoVariant: "sweet" }));
     await expect(overlay).toHaveAttribute("data-potato-variant", "sweet");
@@ -155,7 +209,7 @@ test("模擬Meetで相手だけに表示し、ON/OFFを繰り返せる", async (
     expect((await getMeetState(worker)).trackedCount).toBe(9);
     await expect(overlay).toHaveAttribute("data-sunglasses-count", "8");
     await page.locator("#performance-test-participants").evaluate((element) => element.remove());
-    await expect(overlay).toHaveAttribute("data-potato-count", "1", { timeout: 4_000 });
+    await expect(overlay).toHaveAttribute("data-potato-count", "1", { timeout: 10_000 });
 
     await worker.evaluate(() => chrome.storage.local.set({ sunglassesEnabled: false }));
     await expect(overlay).toHaveAttribute("data-sunglasses-count", "0");
@@ -171,6 +225,7 @@ test("模擬Meetで相手だけに表示し、ON/OFFを繰り返せる", async (
     const started = Date.now();
     await sendToMeet(worker, false);
     await expect(page.locator("#potato-meet-overlay")).toHaveCount(0, { timeout: 1_000 });
+    await expect(page.locator('iframe[src$="/face-tracker-host.html"]')).toHaveCount(0);
     expect(Date.now() - started).toBeLessThan(1_000);
     expect(externalRequests).toEqual([]);
     expect(browserErrors).toEqual([]);
@@ -188,6 +243,10 @@ test("模擬Meetで相手だけに表示し、ON/OFFを繰り返せる", async (
     await expect(popup.locator("#preview-body")).toHaveAttribute("src", /potato-body-sweet\.png$/);
     await expect(popup.locator("#preview-sunglasses")).toBeVisible();
     await expect(popup.locator("#selection-summary")).toHaveText("Sweet potato + sunglasses");
+    await expect(popup.getByText(
+      "Before you turn it on: Potato Meet processes visible Meet video, face estimates, and participant tile text on this device to place potatoes. It does not save or upload them.",
+      { exact: true }
+    )).toBeVisible();
     await expect(popup.locator("#connection-notice")).toBeVisible();
 
     // ポップアップを開いたままMeet側の設定が変わっても、表示を同期する。
@@ -200,7 +259,17 @@ test("模擬Meetで相手だけに表示し、ON/OFFを繰り返せる", async (
     await expect(popup.locator("#preview-body")).toHaveAttribute("src", /potato-body-purple\.png$/);
     await expect(popup.locator("#preview-sunglasses")).toBeHidden();
     await expect(popup.locator("#selection-summary")).toHaveText("Purple potato");
-    await popup.screenshot({ path: "docs/images/potato-meet-popup.png" });
+    await popup.screenshot({ path: test.info().outputPath("popup.png") });
+
+    // The popup must refresh after asynchronous tracker initialization finishes.
+    await page.bringToFront();
+    await sendToMeet(worker, true);
+    await expect(popup.locator("#tracking-status")).toHaveText(/Checking 1 video/, { timeout: 15_000 });
+    await expect(popup.locator("#potato-toggle")).toBeChecked();
+    await expect(overlay).toHaveAttribute("data-potato-count", "1");
+    await popup.screenshot({ path: test.info().outputPath("popup-tracking.png") });
+    await sendToMeet(worker, false);
+    await expect(popup.locator("#tracking-status")).toBeHidden();
   } finally {
     await context.close();
     const expectedPrefix = `${os.tmpdir()}${path.sep}potato-meet-chrome-`;
@@ -208,3 +277,5 @@ test("模擬Meetで相手だけに表示し、ON/OFFを繰り返せる", async (
     rmSync(userDataDir, { recursive: true, force: true, maxRetries: 2 });
   }
 });
+
+}

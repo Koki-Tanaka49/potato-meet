@@ -49,7 +49,16 @@
             if (remotePortrait.complete && remotePortrait.naturalWidth > 0) {
               const sourceHeight = remotePortrait.naturalWidth * (360 / 640);
               const sourceY = (remotePortrait.naturalHeight - sourceHeight) / 2;
-              context.drawImage(remotePortrait, 0, sourceY, remotePortrait.naturalWidth, sourceHeight, 0, 0, 640, 360);
+              const faces = Number(document.getElementById(id).dataset.faces || 1);
+              if (faces > 1) {
+                for (let index = 0; index < faces; index += 1) {
+                  const x = (index % 2) * 320;
+                  const y = faces === 2 ? 90 : Math.floor(index / 2) * 180;
+                  context.drawImage(remotePortrait, 0, sourceY, remotePortrait.naturalWidth, sourceHeight, x, y, 320, 180);
+                }
+              } else {
+                context.drawImage(remotePortrait, 0, sourceY, remotePortrait.naturalWidth, sourceHeight, 0, 0, 640, 360);
+              }
             }
           } else if (kind === "slides") {
             context.fillStyle = "white"; context.fillRect(90, 45, 460, 270);

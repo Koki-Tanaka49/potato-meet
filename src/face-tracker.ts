@@ -1,7 +1,7 @@
 import type { FaceObservation } from "./types";
 
 export interface DetectionOutcome {
-  observation: FaceObservation | null;
+  observations: FaceObservation[];
   readable: boolean;
   failed?: boolean;
 }
@@ -16,8 +16,10 @@ interface PendingDetection {
   resolve: (outcome: DetectionOutcome) => void;
 }
 
-const UNREADABLE: DetectionOutcome = { observation: null, readable: false };
-const WORKER_FAILED: DetectionOutcome = { observation: null, readable: false, failed: true };
+type TrackingWorker = Pick<Worker, "postMessage" | "addEventListener" | "removeEventListener" | "terminate">;
+
+const UNREADABLE: DetectionOutcome = { observations: [], readable: false };
+const WORKER_FAILED: DetectionOutcome = { observations: [], readable: false, failed: true };
 
 export class FaceTracker {
   private requestId = 0;
@@ -25,24 +27,29 @@ export class FaceTracker {
   private failed = false;
   private readonly pending = new Map<number, PendingDetection>();
 
-  private constructor(private readonly worker: Worker) {
+  private constructor(private readonly worker: TrackingWorker) {
     this.worker.addEventListener("message", this.handleMessage);
     this.worker.addEventListener("error", this.handleWorkerFailure);
     this.worker.addEventListener("messageerror", this.handleWorkerFailure);
   }
 
-  static async create(): Promise<FaceTracker> {
-    // Content Scriptはページと別の環境で動くが、WorkerのURL判定にはページ側の
-    // オリジンが使われる。拡張機能内の検証済みコードをBlobへ移して起動する。
-    const workerScript = await fetch(chrome.runtime.getURL("face-tracker-worker.js"));
-    if (!workerScript.ok) throw new Error("Could not load the face-tracking worker.");
-    const workerUrl = URL.createObjectURL(new Blob([await workerScript.text()], { type: "text/javascript" }));
-    let worker: Worker;
-    try {
-      worker = new Worker(workerUrl);
-    } finally {
-      URL.revokeObjectURL(workerUrl);
-    }
+  static async create(signal?: AbortSignal): Promise<FaceTracker> {
+    signal?.throwIfAborted();
+    // Run the worker in an extension frame: a page-origin Blob worker inherits
+    // Meet's CSP, which can forbid the WebAssembly required by MediaPipe.
+    const frame = document.createElement("iframe");
+    frame.hidden = true;
+    frame.setAttribute("aria-hidden", "true");
+    frame.src = chrome.runtime.getURL("face-tracker-host.html");
+    const channel = new MessageChannel();
+    const worker: TrackingWorker = Object.assign(channel.port1, {
+      terminate: () => {
+        channel.port1.close();
+        channel.port2.close();
+        frame.remove();
+      }
+    });
+    channel.port1.start();
     try {
       await new Promise<void>((resolve, reject) => {
         const handleMessage = (event: MessageEvent<{ type?: string; error?: string }>): void => {
@@ -58,20 +65,31 @@ export class FaceTracker {
           cleanup();
           reject(new Error("Could not start the face-tracking worker."));
         };
+        const handleAbort = (): void => {
+          cleanup();
+          reject(new DOMException("Face tracking was cancelled.", "AbortError"));
+        };
+        const timeout = setTimeout(() => {
+          cleanup();
+          reject(new Error("Face tracking timed out. Turn it off and on to retry."));
+        }, 15_000);
         const cleanup = (): void => {
+          clearTimeout(timeout);
+          signal?.removeEventListener("abort", handleAbort);
           worker.removeEventListener("message", handleMessage);
           worker.removeEventListener("error", handleError);
           worker.removeEventListener("messageerror", handleError);
         };
+        signal?.addEventListener("abort", handleAbort, { once: true });
         worker.addEventListener("message", handleMessage);
         worker.addEventListener("error", handleError);
         worker.addEventListener("messageerror", handleError);
-        worker.postMessage({
-          type: "init",
-          wasmLoaderPath: chrome.runtime.getURL("mediapipe/wasm/vision_wasm_internal.js"),
-          wasmBinaryPath: chrome.runtime.getURL("mediapipe/wasm/vision_wasm_internal.wasm"),
-          modelPath: chrome.runtime.getURL("models/face_landmarker.task")
-        });
+        frame.addEventListener("load", () => {
+          frame.contentWindow?.postMessage({ type: "POTATO_CONNECT" },
+            new URL(frame.src).origin, [channel.port2]);
+        }, { once: true });
+        document.documentElement.append(frame);
+        worker.postMessage({ type: "init" });
       });
       return new FaceTracker(worker);
     } catch (error) {
@@ -80,7 +98,7 @@ export class FaceTracker {
     }
   }
 
-  async detect(video: HTMLVideoElement, timestamp: number, maxDimension = 256): Promise<DetectionOutcome> {
+  async detect(video: HTMLVideoElement, maxDimension = 256): Promise<DetectionOutcome> {
     if (this.failed) return WORKER_FAILED;
     if (
       this.closed ||
@@ -115,7 +133,7 @@ export class FaceTracker {
     return new Promise((resolve) => {
       this.pending.set(requestId, { resolve });
       try {
-        this.worker.postMessage({ type: "detect", requestId, timestamp, frame }, [frame]);
+        this.worker.postMessage({ type: "detect", requestId, frame }, [frame]);
       } catch {
         this.pending.delete(requestId);
         frame.close();
@@ -134,7 +152,11 @@ export class FaceTracker {
     this.resolvePendingAsUnreadable();
   }
 
-  private readonly handleMessage = (event: MessageEvent<WorkerDetectionResponse>): void => {
+  private readonly handleMessage = (event: MessageEvent<WorkerDetectionResponse | { type: "init-error" }>): void => {
+    if (event.data.type === "init-error") {
+      this.handleWorkerFailure();
+      return;
+    }
     if (event.data.type !== "result") return;
     const pending = this.pending.get(event.data.requestId);
     if (!pending) return;

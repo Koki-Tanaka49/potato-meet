@@ -1,6 +1,6 @@
 # Potato Meet
 
-Potato Meet is a Chrome extension that overlays animated potatoes on other participants' faces in Google Meet. All processing stays in your browser, and no video or face data is stored or transmitted.
+Potato Meet is a Chrome extension that overlays animated potatoes on other participants' faces in Google Meet. Video frames and face estimates are processed in your browser and are not persistently stored by the extension.
 
 ![Potato Meet in Google Meet](docs/images/potato-meet-browser.png)
 
@@ -10,6 +10,7 @@ Potato Meet is a Chrome extension that overlays animated potatoes on other parti
 - Offers three styles: classic potato, sweet potato, and purple potato
 - Adds optional frameless sunglasses as a separate layer
 - Reacts to mouth movement and head direction
+- Detects up to 4 faces per camera across up to 8 visible remote camera tiles
 - Automatically adjusts processing load based on the number of participants
 - Shows an instant preview of your selection in the popup
 
@@ -32,6 +33,16 @@ On the first build, the project downloads the face-detection model from MediaPip
 
 Potato Meet always starts turned off in each new Google Meet tab.
 
+## Updating and troubleshooting
+
+After rebuilding, reload Potato Meet in `chrome://extensions`, then open its popup on the Meet tab. Version 0.3.4 reconnects tabs missing the content script and lets you turn **Show potatoes** on without leaving the call. If site access is denied or an older context persists, reload the Meet tab. For a store installation, the new version must first be published and installed; rebuilding this repository does not update it.
+
+Version 0.3.3 starts face tracking in an extension-owned frame and worker so that the Meet page's WebAssembly restrictions do not prevent initialization. The popup reports initialization, missing participant videos, and startup errors. The extension still excludes your own video.
+
+Version 0.3.5 defers face-tracker initialization until a visible participant video appears, avoids hidden-tab and unrelated text-change scans, and reuses the participant processing order until layout or membership changes. Detection resolution, timing, participant limits, and image assets remain the same. The unused nosimd WASM pair is no longer packaged; the runtime already explicitly selected the SIMD pair.
+
+Version 0.3.6 supports multiple faces in one camera tile. Frames from different cameras are detected independently, with expression smoothing maintained per face. Face retention accounts for the measured detection interval so slower processing does not reset tracking before the next turn. The existing limit of 8 camera tiles remains unchanged. Local changes must be loaded by reloading the extension and refreshing the Meet tab after the call.
+
 ## Development and testing
 
 | Command | Purpose |
@@ -41,7 +52,7 @@ Potato Meet always starts turned off in each new Google Meet tab.
 | `npm run model` | Download and verify the face-detection model |
 | `npm run assets -- <image-path>` | Prepare potato image assets |
 
-Head direction, mouth movement, and long-running behavior are verified manually in a real Google Meet call. The browser test uses an AI-generated person who does not represent a real individual.
+Head direction, mouth movement, and long-running behavior are verified manually in a real Google Meet call. The browser tests cover both an unrestricted page and a page CSP that forbids WebAssembly. They use an AI-generated person who does not represent a real individual. Test screenshots are written to `test-results`, leaving published screenshots unchanged.
 
 ## Project structure
 
@@ -57,14 +68,20 @@ Head direction, mouth movement, and long-running behavior are verified manually 
 - [Current specification](docs/spec.md)
 - [Image assets](docs/assets.md)
 - [Third-party software](docs/third-party.md)
+- [Chrome Web Store listing text](docs/chrome-web-store-listing.md)
+- [Privacy policy draft](docs/privacy-policy.md)
+- [Publishing checklist](docs/publishing-checklist.md)
+- [MediaPipe distribution and privacy review](docs/mediapipe-distribution-review.md)
+
+Do not publish until the MediaPipe review is resolved and the operator, contact, support, and public privacy-policy URL placeholders are replaced with confirmed values.
 
 ## Privacy
 
-- The only requested Chrome permission is `storage`.
+- Chrome permissions are `storage` for preferences and `scripting` to reconnect an existing Meet tab. Host access is limited to `https://meet.google.com/*`.
 - The extension runs only on `https://meet.google.com/*`.
 - It does not request microphone, camera, recording, or browsing-history permissions.
 - It does not use a CDN, analytics service, or remote logging.
-- It does not store video, face images, face landmarks, participant names, or meeting URLs.
+- It does not persistently store video, face images, face landmarks, participant names, or meeting URLs.
 
 ## License
 

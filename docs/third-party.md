@@ -10,6 +10,10 @@
 
 The build copies the package's JavaScript and WebAssembly files into `dist`. The generated `dist` directory is not committed to Git.
 
+### Distributed loader modification
+
+During the production build, Potato Meet appends two assignments to the copied `mediapipe/wasm/vision_wasm_internal.js` file. The assignments expose MediaPipe's `ModuleFactory` on `globalThis` so the bundled loader can initialize inside the Chrome extension execution environment. The build also appends this modification notice directly to the distributed file. No other MediaPipe package file is intentionally modified.
+
 ## MediaPipe Face Landmarker model
 
 - File: `face_landmarker.task`
@@ -19,4 +23,4 @@ The build copies the package's JavaScript and WebAssembly files into `dist`. The
 
 The model is not committed to Git. If the model is missing, `npm run build` downloads it from the official source and verifies that its SHA-256 checksum matches exactly before use.
 
-The official materials above do not clearly state the redistribution terms for the standalone model file. Confirm the applicable terms before distributing an extension package that includes the model.
+The task bundle contains BlazeFace Short Range, Face Mesh V2, and Blendshape V2 model components. Google's official model cards identify each of those models as Apache License 2.0. The pinned task file also matches the exact SHA-256 of the model bundled by the currently published Chrome Web Store extension [Gaze Guard](https://chromewebstore.google.com/detail/fomblcbdekidgallgkdkpkndoneajkbf). Potato Meet therefore treats redistribution of this pinned model as acceptable under its documented practical release standard. Re-review the terms, notices, and checksum before replacing the model.

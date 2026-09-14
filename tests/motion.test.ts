@@ -4,8 +4,8 @@ import type { Point } from "../src/types";
 
 describe("口の開閉", () => {
   it("開く値と閉じる値を分けて点滅を防ぐ", () => {
-    expect(nextMouthState(false, 0.24)).toBe(false);
-    expect(nextMouthState(false, 0.25)).toBe(true);
+    expect(nextMouthState(false, 0.19)).toBe(false);
+    expect(nextMouthState(false, 0.2)).toBe(true);
     expect(nextMouthState(true, 0.2)).toBe(true);
     expect(nextMouthState(true, 0.17)).toBe(false);
   });

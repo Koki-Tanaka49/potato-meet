@@ -153,8 +153,8 @@ it("tracks two faces independently when result order changes and removes a missi
   await toggle(true);
   await vi.advanceTimersByTimeAsync(150);
   expect(output.draw.mock.lastCall?.[0]).toHaveLength(2);
-  // 0.2 keeps an open mouth open and a closed mouth closed: a swap is observable.
-  observations = [{ ...right, jawOpen: 0.2 }, { ...left, jawOpen: 0.2 }];
+  // 0.19 keeps an open mouth open and a closed mouth closed: a swap is observable.
+  observations = [{ ...right, jawOpen: 0.19 }, { ...left, jawOpen: 0.19 }];
   await vi.advanceTimersByTimeAsync(150);
   const poses = [...(output.draw.mock.lastCall?.[0] as OverlayPose[])].sort((a, b) => a.x - b.x);
   expect(poses.map((pose) => pose.mouthOpen)).toEqual([true, false]);

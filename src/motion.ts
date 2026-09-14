@@ -1,7 +1,8 @@
 import { clamp, lerp } from "./geometry";
 import type { FaceMotion, Point } from "./types";
 
-export const MOUTH_OPEN_THRESHOLD = 0.25;
+// 小さな開き方も拾えるよう、開く判定を少し敏感にする。
+export const MOUTH_OPEN_THRESHOLD = 0.2;
 export const MOUTH_CLOSE_THRESHOLD = 0.17;
 
 export function nextMouthState(current: boolean, jawOpen: number): boolean {

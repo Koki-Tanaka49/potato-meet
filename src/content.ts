@@ -14,15 +14,21 @@ import {
   type PotatoVariant
 } from "./types";
 
-interface ParticipantState {
-  candidate: MeetVideoCandidate;
-  observation: FaceObservation | null;
+interface TrackedFace {
+  observation: FaceObservation;
   motion: FaceMotion;
   lastSeenAt: number;
   consecutiveDetections: number;
   trackingConfirmed: boolean;
+}
+
+interface ParticipantState {
+  candidate: MeetVideoCandidate;
+  faces: TrackedFace[];
   readable: boolean;
   lastVideoFrame: number;
+  lastDetectionAt: number;
+  faceHoldMs: number;
 }
 
 const EMPTY_MOTION: FaceMotion = { roll: 0, yaw: 0, pitch: 0, mouthOpen: false };
@@ -55,7 +61,6 @@ class PotatoMeetController {
   private scanDebounce: number | null = null;
   private animationFrame: number | null = null;
   private detectionCursor = 0;
-  private lastDetectionTimestamp = 0;
   private generation = 0;
   private trackerLoading: AbortController | null = null;
   private detectionInFlight = false;
@@ -220,6 +225,13 @@ class PotatoMeetController {
       this.animationFrame = null;
       return;
     }
+    // Hidden time is not detector latency; reacquire faces from the current frames.
+    for (const state of this.participants.values()) {
+      state.lastDetectionAt = 0;
+      state.lastVideoFrame = -1;
+      state.faces = [];
+      state.faceHoldMs = faceHoldDuration(this.participants.size);
+    }
     this.scan();
     this.updateLayouts();
     this.requestRender();
@@ -274,11 +286,9 @@ class PotatoMeetController {
       } else {
         this.participants.set(candidate.video, {
           candidate,
-          observation: null,
-          motion: { ...EMPTY_MOTION },
-          lastSeenAt: 0,
-          consecutiveDetections: 0,
-          trackingConfirmed: false,
+          faces: [],
+          lastDetectionAt: 0,
+          faceHoldMs: faceHoldDuration(candidates.length),
           readable: true,
           lastVideoFrame: -1
         });
@@ -350,15 +360,17 @@ class PotatoMeetController {
     const videoFrame = videoFrameToken(state.candidate.video);
     if (videoFrame === state.lastVideoFrame) {
       // 同じ映像フレームを再解析せず、最後に確認できた顔はそのまま維持する。
-      if (state.readable && state.observation) state.lastSeenAt = performance.now();
+      if (state.readable) {
+        for (const face of state.faces) {
+          if (face.consecutiveDetections > 0) face.lastSeenAt = performance.now();
+        }
+      }
       return;
     }
 
     const startedAt = performance.now();
-    const timestamp = Math.max(Math.round(startedAt), this.lastDetectionTimestamp + 1);
-    this.lastDetectionTimestamp = timestamp;
     const video = state.candidate.video;
-    const outcome = await tracker.detect(video, timestamp, profile.detectionSize);
+    const outcome = await tracker.detect(video, profile.detectionSize);
     if (
       !this.enabled ||
       generation !== this.generation ||
@@ -375,70 +387,90 @@ class PotatoMeetController {
     }
     if (outcome.readable) state.lastVideoFrame = videoFrame;
     const now = performance.now();
-    const faceHoldMs = faceHoldDuration(this.participants.size);
+    // Include actual inference time in the round trip, not just scheduled delays.
+    const interval = state.lastDetectionAt > 0 ? now - state.lastDetectionAt : now - startedAt;
+    state.faceHoldMs = Math.max(faceHoldDuration(this.participants.size), interval * 2);
+    state.lastDetectionAt = now;
     state.readable = outcome.readable;
-    if (outcome.observation) {
-      if (state.lastSeenAt > 0 && now - state.lastSeenAt > faceHoldMs) {
-        state.trackingConfirmed = false;
-        state.consecutiveDetections = 0;
+    const previous = state.faces.filter((face) => now - face.lastSeenAt <= state.faceHoldMs);
+    const unmatched = new Set(previous);
+    state.faces = outcome.observations.map((observation) => {
+      // Match by overlapping face boxes so detection order cannot swap expressions.
+      const box = observation.box;
+      let match: TrackedFace | undefined;
+      let bestOverlap = 0;
+      for (const face of unmatched) {
+        const other = face.observation.box;
+        const width = Math.max(0, Math.min(box.x + box.width, other.x + other.width) - Math.max(box.x, other.x));
+        const height = Math.max(0, Math.min(box.y + box.height, other.y + other.height) - Math.max(box.y, other.y));
+        const intersection = width * height;
+        const overlap = intersection / (box.width * box.height + other.width * other.height - intersection);
+        if (overlap > bestOverlap) {
+          bestOverlap = overlap;
+          match = face;
+        }
       }
-      const mouthOpen = nextMouthState(state.motion.mouthOpen, outcome.observation.jawOpen);
-      const nextMotion: FaceMotion = {
-        roll: state.candidate.mirrored ? -outcome.observation.roll : outcome.observation.roll,
-        yaw: state.candidate.mirrored ? -outcome.observation.yaw : outcome.observation.yaw,
-        pitch: outcome.observation.pitch,
-        mouthOpen
+      if (match) unmatched.delete(match);
+      const consecutiveDetections = (match?.consecutiveDetections ?? 0) + 1;
+      const motion = match?.motion ?? EMPTY_MOTION;
+      return {
+        observation,
+        motion: smoothMotion(motion, {
+          roll: state.candidate.mirrored ? -observation.roll : observation.roll,
+          yaw: state.candidate.mirrored ? -observation.yaw : observation.yaw,
+          pitch: observation.pitch,
+          mouthOpen: nextMouthState(motion.mouthOpen, observation.jawOpen)
+        }),
+        lastSeenAt: now,
+        consecutiveDetections,
+        trackingConfirmed: Boolean(match?.trackingConfirmed || consecutiveDetections >= 2)
       };
-      state.motion = smoothMotion(state.motion, nextMotion);
-      state.observation = outcome.observation;
-      state.lastSeenAt = now;
-      state.consecutiveDetections += 1;
-      if (state.consecutiveDetections >= 2) state.trackingConfirmed = true;
-    } else {
-      state.consecutiveDetections = 0;
-      if (state.lastSeenAt > 0 && now - state.lastSeenAt > faceHoldMs) state.trackingConfirmed = false;
+    });
+    for (const face of unmatched) {
+      face.consecutiveDetections = 0;
+      state.faces.push(face);
     }
     this.requestRender();
   }
 
   private poses(now: number): OverlayPose[] {
     const poses: OverlayPose[] = [];
-    const faceHoldMs = faceHoldDuration(this.participants.size);
     for (const state of this.participants.values()) {
       const candidate = state.candidate;
-      const shouldTrack = Boolean(
-        state.readable &&
-        state.observation &&
-        state.trackingConfirmed &&
-        now - state.lastSeenAt <= faceHoldMs
-      );
-      // 顔を連続して確認できた映像だけを、カメラONの対象として描画する。
-      // これにより、分類用の目印がない画面共有やカメラOFF映像へは表示しない。
-      if (!shouldTrack || !state.observation) continue;
+      for (const face of state.faces) {
+        const shouldTrack = Boolean(
+          state.readable &&
+          face.trackingConfirmed &&
+          now - face.lastSeenAt <= state.faceHoldMs
+        );
+        // 顔を連続して確認できた映像だけを、カメラONの対象として描画する。
+        // これにより、分類用の目印がない画面共有やカメラOFF映像へは表示しない。
+        if (!shouldTrack) continue;
 
-      const potatoRect = expandAndClampFace(
-        faceBoxToPageRect(
-          state.observation.box,
-          candidate.videoRect,
-          candidate.video.videoWidth,
-          candidate.video.videoHeight,
-          candidate.objectFit,
-          candidate.mirrored
-        ),
-        candidate.tileRect
-      );
-      poses.push({
-        x: potatoRect.x + potatoRect.width / 2,
-        y: potatoRect.y + potatoRect.height / 2,
-        width: potatoRect.width,
-        height: potatoRect.height,
-        tile: candidate.tileRect,
-        roll: state.motion.roll,
-        yaw: state.motion.yaw,
-        pitch: state.motion.pitch,
-        mouthOpen: state.motion.mouthOpen,
-        isStatic: false
-      });
+        const potatoRect = expandAndClampFace(
+          faceBoxToPageRect(
+            face.observation.box,
+            candidate.videoRect,
+            candidate.video.videoWidth,
+            candidate.video.videoHeight,
+            candidate.objectFit,
+            candidate.mirrored
+          ),
+          candidate.tileRect
+        );
+        poses.push({
+          x: potatoRect.x + potatoRect.width / 2,
+          y: potatoRect.y + potatoRect.height / 2,
+          width: potatoRect.width,
+          height: potatoRect.height,
+          tile: candidate.tileRect,
+          roll: face.motion.roll,
+          yaw: face.motion.yaw,
+          pitch: face.motion.pitch,
+          mouthOpen: face.motion.mouthOpen,
+          isStatic: false
+        });
+      }
     }
     return poses;
   }

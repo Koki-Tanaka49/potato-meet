@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import type { ExtensionMessage, ExtensionStateResponse } from "../src/types";
+import type { ExtensionMessage, ExtensionStateResponse, FaceObservation, OverlayPose } from "../src/types";
 import type { MeetVideoCandidate } from "../src/meet-adapter";
 
 const mocks = vi.hoisted(() => ({ scan: vi.fn(), createTracker: vi.fn(), createRenderer: vi.fn() }));
@@ -14,6 +14,7 @@ function candidate(): MeetVideoCandidate {
   const tile = document.createElement("div");
   const video = document.createElement("video");
   video.getVideoPlaybackQuality = () => ({ totalVideoFrames: 1 }) as VideoPlaybackQuality;
+  Object.defineProperties(video, { videoWidth: { value: 640 }, videoHeight: { value: 360 } });
   tile.append(video); document.body.append(tile);
   const rect = { x: 0, y: 0, width: 320, height: 180 };
   return { tile, video, tileRect: rect, videoRect: rect, objectFit: "cover", mirrored: false };
@@ -24,7 +25,7 @@ beforeEach(async () => {
   Object.defineProperty(document, "hidden", { configurable: true, value: false });
   mocks.scan.mockReturnValue([]);
   mocks.createRenderer.mockResolvedValue(renderer());
-  mocks.createTracker.mockResolvedValue({ detect: vi.fn().mockResolvedValue({ readable: true, observation: null }), close: vi.fn() });
+  mocks.createTracker.mockResolvedValue({ detect: vi.fn().mockResolvedValue({ readable: true, observations: [] }), close: vi.fn() });
   vi.stubGlobal("chrome", {
     runtime: { onMessage: { addListener: (callback: typeof listener) => { listener = callback; } } },
     storage: { local: { get: async () => ({}) }, onChanged: { addListener: () => undefined } }
@@ -63,17 +64,17 @@ it("does not scan hidden-tab DOM mutations, and resumes on visibility", async ()
 it("continues tracking others when a participant disappears during detection", async () => {
   const first = candidate(), second = candidate();
   mocks.scan.mockReturnValue([first, second]);
-  let finish!: (outcome: { readable: boolean; observation: null }) => void;
+  let finish!: (outcome: { readable: boolean; observations: [] }) => void;
   const detect = vi.fn().mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }))
-    .mockResolvedValue({ readable: true, observation: null });
+    .mockResolvedValue({ readable: true, observations: [] });
   mocks.createTracker.mockResolvedValue({ detect, close: vi.fn() });
   await toggle(true); await vi.advanceTimersByTimeAsync(10);
   expect(detect).toHaveBeenCalledOnce();
   first.tile.remove(); mocks.scan.mockReturnValue([second]);
   await vi.advanceTimersByTimeAsync(750);
-  finish({ readable: true, observation: null });
+  finish({ readable: true, observations: [] });
   await vi.advanceTimersByTimeAsync(200);
-  expect(detect).toHaveBeenCalledWith(second.video, expect.any(Number), 256);
+  expect(detect).toHaveBeenCalledWith(second.video, 256);
 });
 
 it("an old renderer load cannot replace the renderer from a later On", async () => {
@@ -116,4 +117,56 @@ it("Off cancels an unfinished tracker initialization without blocking the next O
   await vi.advanceTimersByTimeAsync(10);
   expect(mocks.createTracker).toHaveBeenCalledTimes(2);
   expect(await send({ type: "POTATO_GET_STATE" })).toMatchObject({ enabled: true, detectorReady: true });
+});
+
+it("keeps four camera faces visible when inference takes longer than the fixed hold time", async () => {
+  const candidates = Array.from({ length: 4 }, () => candidate());
+  for (const { video } of candidates) {
+    video.getVideoPlaybackQuality = () => ({ totalVideoFrames: Math.floor(performance.now()) + 1 }) as VideoPlaybackQuality;
+  }
+  mocks.scan.mockReturnValue(candidates);
+  const output = renderer();
+  mocks.createRenderer.mockResolvedValue(output);
+  const observation = { box: { x: 0.3, y: 0.2, width: 0.3, height: 0.4 }, jawOpen: 0, roll: 0, yaw: 0, pitch: 0 };
+  mocks.createTracker.mockResolvedValue({
+    detect: vi.fn().mockImplementation(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      return { readable: true, observations: [observation] };
+    }),
+    close: vi.fn()
+  });
+  await toggle(true);
+  await vi.advanceTimersByTimeAsync(3500);
+  expect(output.draw.mock.lastCall?.[0]).toHaveLength(4);
+});
+
+it("tracks two faces independently when result order changes and removes a missing face", async () => {
+  const target = candidate();
+  target.video.getVideoPlaybackQuality = () => ({ totalVideoFrames: Math.floor(performance.now()) + 1 }) as VideoPlaybackQuality;
+  mocks.scan.mockReturnValue([target]);
+  const output = renderer();
+  mocks.createRenderer.mockResolvedValue(output);
+  const left: FaceObservation = { box: { x: 0.1, y: 0.2, width: 0.2, height: 0.4 }, jawOpen: 0.3, roll: 0, yaw: 0, pitch: 0 };
+  const right: FaceObservation = { ...left, box: { ...left.box, x: 0.65 }, jawOpen: 0 };
+  let observations = [left, right];
+  mocks.createTracker.mockResolvedValue({ detect: vi.fn().mockImplementation(async () => ({ readable: true, observations })), close: vi.fn() });
+  await toggle(true);
+  await vi.advanceTimersByTimeAsync(150);
+  expect(output.draw.mock.lastCall?.[0]).toHaveLength(2);
+  // 0.2 keeps an open mouth open and a closed mouth closed: a swap is observable.
+  observations = [{ ...right, jawOpen: 0.2 }, { ...left, jawOpen: 0.2 }];
+  await vi.advanceTimersByTimeAsync(150);
+  const poses = [...(output.draw.mock.lastCall?.[0] as OverlayPose[])].sort((a, b) => a.x - b.x);
+  expect(poses.map((pose) => pose.mouthOpen)).toEqual([true, false]);
+  observations = [right];
+  await vi.advanceTimersByTimeAsync(700);
+  expect(output.draw.mock.lastCall?.[0]).toHaveLength(1);
+  Object.defineProperty(document, "hidden", { configurable: true, value: true });
+  document.dispatchEvent(new Event("visibilitychange"));
+  await vi.advanceTimersByTimeAsync(30_000);
+  observations = [];
+  Object.defineProperty(document, "hidden", { configurable: true, value: false });
+  document.dispatchEvent(new Event("visibilitychange"));
+  await vi.advanceTimersByTimeAsync(700);
+  expect(output.draw.mock.lastCall?.[0]).toHaveLength(0);
 });

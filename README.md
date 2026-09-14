@@ -10,6 +10,7 @@ Potato Meet is a Chrome extension that overlays animated potatoes on other parti
 - Offers three styles: classic potato, sweet potato, and purple potato
 - Adds optional frameless sunglasses as a separate layer
 - Reacts to mouth movement and head direction
+- Detects up to 4 faces per camera across up to 8 visible remote camera tiles
 - Automatically adjusts processing load based on the number of participants
 - Shows an instant preview of your selection in the popup
 
@@ -39,6 +40,8 @@ After rebuilding, reload Potato Meet in `chrome://extensions`, then open its pop
 Version 0.3.3 starts face tracking in an extension-owned frame and worker so that the Meet page's WebAssembly restrictions do not prevent initialization. The popup reports initialization, missing participant videos, and startup errors. The extension still excludes your own video.
 
 Version 0.3.5 defers face-tracker initialization until a visible participant video appears, avoids hidden-tab and unrelated text-change scans, and reuses the participant processing order until layout or membership changes. Detection resolution, timing, participant limits, and image assets remain the same. The unused nosimd WASM pair is no longer packaged; the runtime already explicitly selected the SIMD pair.
+
+Version 0.3.6 supports multiple faces in one camera tile. Frames from different cameras are detected independently, with expression smoothing maintained per face. Face retention accounts for the measured detection interval so slower processing does not reset tracking before the next turn. The existing limit of 8 camera tiles remains unchanged. Local changes must be loaded by reloading the extension and refreshing the Meet tab after the call.
 
 ## Development and testing
 

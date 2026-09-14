@@ -1,7 +1,7 @@
 import type { FaceObservation } from "./types";
 
 export interface DetectionOutcome {
-  observation: FaceObservation | null;
+  observations: FaceObservation[];
   readable: boolean;
   failed?: boolean;
 }
@@ -18,8 +18,8 @@ interface PendingDetection {
 
 type TrackingWorker = Pick<Worker, "postMessage" | "addEventListener" | "removeEventListener" | "terminate">;
 
-const UNREADABLE: DetectionOutcome = { observation: null, readable: false };
-const WORKER_FAILED: DetectionOutcome = { observation: null, readable: false, failed: true };
+const UNREADABLE: DetectionOutcome = { observations: [], readable: false };
+const WORKER_FAILED: DetectionOutcome = { observations: [], readable: false, failed: true };
 
 export class FaceTracker {
   private requestId = 0;
@@ -98,7 +98,7 @@ export class FaceTracker {
     }
   }
 
-  async detect(video: HTMLVideoElement, timestamp: number, maxDimension = 256): Promise<DetectionOutcome> {
+  async detect(video: HTMLVideoElement, maxDimension = 256): Promise<DetectionOutcome> {
     if (this.failed) return WORKER_FAILED;
     if (
       this.closed ||
@@ -133,7 +133,7 @@ export class FaceTracker {
     return new Promise((resolve) => {
       this.pending.set(requestId, { resolve });
       try {
-        this.worker.postMessage({ type: "detect", requestId, timestamp, frame }, [frame]);
+        this.worker.postMessage({ type: "detect", requestId, frame }, [frame]);
       } catch {
         this.pending.delete(requestId);
         frame.close();

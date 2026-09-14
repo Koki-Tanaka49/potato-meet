@@ -147,6 +147,16 @@ test(`模擬Meetで相手だけに表示し、ON/OFFを繰り返せる (${mode})
     await page.locator("#unmarked-screen-share").evaluate((element) => element.remove());
     await expect.poll(async () => (await getMeetState(worker)).trackedCount).toBe(1);
 
+    // A single camera can contain two people; each face needs its own overlay.
+    await page.locator("#remote").evaluate((video) => { video.dataset.faces = "2"; });
+    await expect(overlay).toHaveAttribute("data-potato-count", "2", { timeout: 10_000 });
+    await page.screenshot({ path: test.info().outputPath("two-faces-one-camera.png"), fullPage: true });
+    await page.locator("#remote").evaluate((video) => { video.dataset.faces = "4"; });
+    await expect(overlay).toHaveAttribute("data-potato-count", "4", { timeout: 10_000 });
+    await page.screenshot({ path: test.info().outputPath("four-faces-one-camera.png"), fullPage: true });
+    await page.locator("#remote").evaluate((video) => { delete video.dataset.faces; });
+    await expect(overlay).toHaveAttribute("data-potato-count", "1", { timeout: 10_000 });
+
     const renderCountBefore = Number(await overlay.getAttribute("data-render-count"));
     await page.waitForTimeout(1_000);
     const renderCountAfter = Number(await overlay.getAttribute("data-render-count"));
